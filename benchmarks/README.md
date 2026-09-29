@@ -1,10 +1,16 @@
 # Public benchmarks: $\mathcal L^{(k)}$ + qwen-code
 
-These adapters run ScienceAgentBench (102 verified tasks) and the paper's
+These adapters run ScienceAgentBench (102 verified tasks) and an earlier
 12-task MLR-Bench subset. They use bare benchmark instructions and the same
 qwen-code runtime for `L0`, `L1`, and `L2`. The subset is listed in
 [configs/mlr_tasks.txt](configs/mlr_tasks.txt). No benchmark trajectory enters
 MASS training.
+
+The [README results](../README.md#benchmark-results) include an expanded
+107-task, three-trial MLR-Bench evaluation. Its task configuration is not
+included here; the MLR-Bench instructions below describe the packaged 12-task,
+five-trial setup. Evaluation adapters for AstaBench, DSBench, Terminal-Bench
+2.0, and SWE-bench Verified are also not included.
 
 Run commands from the repository root unless a subshell changes directory.
 Use Python 3.12 and Docker with Compose. The adapters require the pinned Harbor

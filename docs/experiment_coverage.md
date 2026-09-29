@@ -6,6 +6,11 @@ runner does not establish reproduction of the reported results. See the
 [implementation notes](reproduction.md) for protocol differences and validation
 limits.
 
+The [README results](../README.md#benchmark-results) cover more benchmarks
+than the packaged runners. In particular, the README reports a 107-task,
+three-trial MLR-Bench evaluation; the included MLR-Bench task list contains
+the earlier 12-task subset.
+
 ## Available components
 
 | Component | Included functionality | Notes |
@@ -15,9 +20,9 @@ limits.
 | Post-training | Conversation rendering, assistant loss masks, LoRA, validation-loss checkpoint selection, merge, and FP8 export | Full training and exact second-cycle data/budget provenance remain unverified. |
 | Synthetic evaluation | Bare-task rollouts and six external judgments per supplied workspace pair | Evaluation-pool selection, saved manifests, and cumulative summaries require care; see the implementation notes. Reference eligibility, complete failure/retry handling, and per-task/per-split reporting are not automated. |
 | ScienceAgentBench | Task construction, execution, official scoring, and trial mean/sample SD | The historical instance ledger and aggregation are unavailable; fresh environment execution is unverified. |
-| MLR-Bench | The 12-task subset, execution, two-reviewer scoring, and trial mean/sample SD | Uses zero for missing/short papers. Additional delivery, behavior, and statistical analyses are not included. |
+| MLR-Bench | The 12-task subset, execution, two-reviewer scoring, and trial mean/sample SD | Uses zero for missing/short papers. The 107-task configuration reported in the README and additional delivery, behavior, and statistical analyses are not included. |
 
-## Additional paper experiments
+## Additional experiments and analyses
 
 The following experiment drivers and analyses are not included:
 
@@ -34,7 +39,7 @@ The following experiment drivers and analyses are not included:
 | Behavioral internalization and SFT exposure | Delegation, handoff, revision, main-edit, and action-to-SFT-window/sampled-exposure analyses |
 | Generic-directive control | The separate design-free control, matching, and reporting; the teacher directive itself is included |
 | Additional MLR-Bench statistics | Delivered-paper counts, conditional scores, delegation statistics, and Welch/Fisher/paired sign tests |
-| Terminal-Bench 2.0 and DSBench | Execution/scoring adapters |
+| AstaBench, DSBench, Terminal-Bench 2.0, and SWE-bench Verified | Execution/scoring adapters |
 
 For implementation locations and model notation, see the
 [paper-to-code mapping](paper_to_code.md). For commands, start with the

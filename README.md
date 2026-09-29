@@ -6,6 +6,7 @@
 
 <p align="center">
   <a href="#overview">🧠 Overview</a> &nbsp;·&nbsp;
+  <a href="#benchmark-results">📊 Results</a> &nbsp;·&nbsp;
   <a href="#quick-start">🚀 Quick start</a> &nbsp;·&nbsp;
   <a href="#run-a-mass-cycle">🔁 Pipeline</a> &nbsp;·&nbsp;
   <a href="#tasks-and-evaluation">🧪 Tasks &amp; evaluation</a> &nbsp;·&nbsp;
@@ -37,6 +38,32 @@ This is a research implementation for running and extending the MASS pipeline.
 The [experiment support](docs/experiment_coverage.md) and
 [implementation notes](docs/reproduction.md) describe the available experiments
 and differences from the reported runs.
+
+<a name="benchmark-results"></a>
+
+## 📊 Benchmark results
+
+Results for the base model $\mathcal{L}^{(0)}$ and the models after one and two
+MASS cycles. Task and trial counts are per model. ScienceAgentBench and paper
+delivery are shown as percentages; other scores retain their reported scales.
+
+| Benchmark | Tasks × trials | $\mathcal{L}^{(0)}$ | $\mathcal{L}^{(1)}$ | $\mathcal{L}^{(2)}$ |
+|---|:---:|---:|---:|---:|
+| ScienceAgentBench (%) | 102 × 3 | 28.8 ± 1.5 | 30.4 ± 2.0 | 31.7 ± 2.0 |
+| MLR-Bench | 107 × 3 | 1.71 ± 0.08 | 1.77 ± 0.09 | 2.25 ± 0.06 |
+| MLR-Bench papers delivered | 107 × 3 | 57% | 59% | 76% |
+| AstaBench | 40 × 1 | 0.0051 | 0.053 | 0.062 |
+| DSBench | 74 × 3 | 0.473 ± 0.029 | 0.465 ± 0.011 | 0.482 ± 0.025 |
+| Terminal-Bench 2.0 | 89 × 2 | 0.373 ± 0.030 | 0.351 ± 0.30 | 0.362 ± 0.003 |
+| SWE-bench Verified | 500 × 1 | 0.635 | 0.597 | 0.605 |
+
+A single score is shown for evaluations with one trial. Paper delivery is
+reported separately from the MLR-Bench score.
+
+The packaged MLR-Bench configuration covers an earlier 12-task subset. The
+107-task configuration and evaluation adapters for AstaBench, DSBench,
+Terminal-Bench 2.0, and SWE-bench Verified are not included. See
+[experiment support](docs/experiment_coverage.md) for the available runners.
 
 <a name="whats-included"></a>
 

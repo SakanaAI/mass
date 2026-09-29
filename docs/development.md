@@ -35,7 +35,7 @@ outputs, and `configs/local*.json` are excluded by `.gitignore`.
 
 The source archive tools are optional; they are not needed to run experiments.
 `SOURCE_MANIFEST.json` lists the files included in a release and their SHA-256
-hashes, including the README figure, animation, and video in `assets/`. Generated runs,
+hashes, including the logo and teaser media in `assets/`. Generated runs,
 downloaded dependencies, model weights, Git history, and local configuration
 files are not part of that manifest.
 

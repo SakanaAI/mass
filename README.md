@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/mass_logo.png" width="340" alt="MASS: learning from a team of model copies." />
+</p>
+
 <h1 align="center">MASS</h1>
 
 <p align="center">
@@ -13,8 +17,6 @@
   <a href="#documentation">📚 Documentation</a>
 </p>
 
-![MASS overview: optimize a multi-agent workflow, distill its trajectories into model weights, and repeat.](assets/mass_teaser_figure.png)
-
 <a name="overview"></a>
 
 ## 🧠 Overview
@@ -25,10 +27,8 @@ Post-training uses trajectories from the selected workflows to update those
 weights. The next cycle starts from the updated model.
 
 <p align="center">
-  <video src="https://github.com/SakanaAI/mass/raw/refs/heads/main/assets/mass_teaser_minimal.mp4" width="600" controls muted></video>
+  <img src="assets/mass_teaser_minimal.gif" width="600" alt="MASS overview: improve a team's workflow, learn from its trajectories, and repeat." />
 </p>
-
-<p align="center"><a href="assets/mass_teaser_minimal.mp4">▶ Watch the MASS overview video (MP4)</a></p>
 
 ```text
 L^(0) ── RHI → post-training ──> L^(1) ── RHI → post-training ──> L^(2)

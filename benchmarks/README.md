@@ -16,6 +16,20 @@ Run commands from the repository root unless a subshell changes directory.
 Use Python 3.12 and Docker with Compose. The adapters require the pinned Harbor
 checkout; they do not depend on a local research-repository installation.
 
+## Official benchmark resources
+
+| Benchmark | Paper | Code or data |
+|---|---|---|
+| ScienceAgentBench | [Paper](https://arxiv.org/abs/2410.05080) | [Official repository](https://github.com/OSU-NLP-Group/ScienceAgentBench) |
+| MLR-Bench | [Paper](https://arxiv.org/abs/2505.19955) | [Official repository](https://github.com/chchenhui/mlrbench) |
+| AstaBench | [Paper](https://arxiv.org/abs/2510.21652) | [Official repository](https://github.com/allenai/asta-bench) |
+| DSBench | [Paper](https://arxiv.org/abs/2409.07703) | [Official repository](https://github.com/LiqiangJing/DSBench) |
+| Terminal-Bench 2.0 | [Paper](https://arxiv.org/abs/2601.11868) | [Version 2.0 repository](https://github.com/harbor-framework/terminal-bench-2) |
+| SWE-bench Verified | [Original SWE-bench paper](https://arxiv.org/abs/2310.06770) | [Verified dataset](https://huggingface.co/datasets/princeton-nlp/SWE-bench_Verified) |
+
+Related resource: [Terminal-Bench-Science](https://github.com/harbor-framework/terminal-bench-science).
+No MASS results for that benchmark are reported in the README.
+
 ## Setup
 
 ```bash

@@ -24,6 +24,12 @@ RHI searches for multi-agent workflows while the model weights stay fixed.
 Post-training uses trajectories from the selected workflows to update those
 weights. The next cycle starts from the updated model.
 
+<p align="center">
+  <a href="assets/mass_teaser_minimal.gif">
+    <img src="assets/mass_teaser_minimal.gif" width="600" alt="Animated introduction to MASS: one model improves a team's workflow, learns from its trajectories, and repeats the cycle." />
+  </a>
+</p>
+
 ```text
 L^(0) ── RHI → post-training ──> L^(1) ── RHI → post-training ──> L^(2)
 ```
@@ -49,16 +55,18 @@ delivery are shown as percentages; other scores retain their reported scales.
 
 | Benchmark | Tasks × trials | $\mathcal{L}^{(0)}$ | $\mathcal{L}^{(1)}$ | $\mathcal{L}^{(2)}$ |
 |---|:---:|---:|---:|---:|
-| ScienceAgentBench (%) | 102 × 3 | 28.8 ± 1.5 | 30.4 ± 2.0 | 31.7 ± 2.0 |
-| MLR-Bench | 107 × 3 | 1.71 ± 0.08 | 1.77 ± 0.09 | 2.25 ± 0.06 |
-| MLR-Bench papers delivered | 107 × 3 | 57% | 59% | 76% |
-| AstaBench | 40 × 1 | 0.0051 | 0.053 | 0.062 |
-| DSBench | 74 × 3 | 0.473 ± 0.029 | 0.465 ± 0.011 | 0.482 ± 0.025 |
-| Terminal-Bench 2.0 | 89 × 2 | 0.373 ± 0.030 | 0.351 ± 0.030 | 0.362 ± 0.003 |
-| SWE-bench Verified | 500 × 1 | 0.635 | 0.597 | 0.605 |
+| [ScienceAgentBench](https://github.com/OSU-NLP-Group/ScienceAgentBench) (%) | 102 × 3 | 28.8 ± 1.5 | 30.4 ± 2.0 | 31.7 ± 2.0 |
+| [MLR-Bench](https://github.com/chchenhui/mlrbench) | 107 × 3 | 1.71 ± 0.08 | 1.77 ± 0.09 | 2.25 ± 0.06 |
+| [MLR-Bench](https://github.com/chchenhui/mlrbench) papers delivered | 107 × 3 | 57% | 59% | 76% |
+| [AstaBench](https://github.com/allenai/asta-bench) | 40 × 1 | 0.0051 | 0.053 | 0.062 |
+| [DSBench](https://github.com/LiqiangJing/DSBench) | 74 × 3 | 0.473 ± 0.029 | 0.465 ± 0.011 | 0.482 ± 0.025 |
+| [Terminal-Bench 2.0](https://github.com/harbor-framework/terminal-bench-2) | 89 × 2 | 0.373 ± 0.030 | 0.351 ± 0.030 | 0.362 ± 0.003 |
+| [SWE-bench Verified](https://huggingface.co/datasets/princeton-nlp/SWE-bench_Verified) | 500 × 1 | 0.635 | 0.597 | 0.605 |
 
 A single score is shown for evaluations with one trial. Paper delivery is
-reported separately from the MLR-Bench score.
+reported separately from the MLR-Bench score. See the
+[benchmark resources](benchmarks/README.md#official-benchmark-resources) for
+official papers and code or data.
 
 The packaged MLR-Bench configuration covers an earlier 12-task subset. The
 107-task configuration and evaluation adapters for AstaBench, DSBench,
@@ -182,7 +190,7 @@ and MLR-Bench evaluation with $\mathcal{L}^{(k)}$ + qwen-code.
 | [benchmarks/](benchmarks/) | Public benchmark setup, execution, and scoring |
 | [tests/](tests/) | Offline tests |
 | [tools/](tools/) | Model downloads, rollout pairing, and source archive utilities |
-| [assets/](assets/) | README teaser figure |
+| [assets/](assets/) | Teaser figure and animated overview |
 
 <a name="documentation"></a>
 

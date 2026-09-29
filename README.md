@@ -1,16 +1,27 @@
-# MASS: Multi-Agent Self-Supervision
+<h1 align="center">MASS</h1>
+
+<p align="center">
+  <strong>Recursive Self-Improvement through Multi-Agent Self-Supervision</strong>
+</p>
+
+<p align="center">
+  <a href="#overview">🧠 Overview</a> &nbsp;·&nbsp;
+  <a href="#quick-start">🚀 Quick start</a> &nbsp;·&nbsp;
+  <a href="#run-a-mass-cycle">🔁 Pipeline</a> &nbsp;·&nbsp;
+  <a href="#tasks-and-evaluation">🧪 Tasks &amp; evaluation</a> &nbsp;·&nbsp;
+  <a href="#documentation">📚 Documentation</a>
+</p>
 
 ![MASS overview: optimize a multi-agent workflow, distill its trajectories into model weights, and repeat.](assets/mass_teaser_figure.png)
 
-MASS alternates between automatic workflow updates (RHI) and post-training.
-RHI searches for multi-agent workflows with a fixed language model. The model
-then learns from trajectories generated under the selected workflows, and the
-next cycle starts from the updated weights.
+<a name="overview"></a>
 
-This is a research implementation for running and extending the MASS pipeline.
-The [experiment support](docs/experiment_coverage.md) and
-[implementation notes](docs/reproduction.md) describe the available experiments
-and differences from the reported runs.
+## 🧠 Overview
+
+**MASS alternates between improving workflows and learning from them.**
+RHI searches for multi-agent workflows while the model weights stay fixed.
+Post-training uses trajectories from the selected workflows to update those
+weights. The next cycle starts from the updated model.
 
 ```text
 L^(0) ── RHI → post-training ──> L^(1) ── RHI → post-training ──> L^(2)
@@ -18,26 +29,40 @@ L^(0) ── RHI → post-training ──> L^(1) ── RHI → post-training �
 
 We use the paper's notation $\mathcal{L}^{(k)}$ for the model after $k$ cycles.
 The configuration files and output directories use `L0`, `L1`, and `L2` for
-the same generations. The base model is Qwen3.6-27B, and each generation uses
+the same generations. Each cycle uses the current model as executor, optimizer,
+and in-loop evaluator. The base model is Qwen3.6-27B, and each generation uses
 qwen-code 0.20.0 as its coding-agent runtime.
 
-## What's included
+This is a research implementation for running and extending the MASS pipeline.
+The [experiment support](docs/experiment_coverage.md) and
+[implementation notes](docs/reproduction.md) describe the available experiments
+and differences from the reported runs.
 
-- Workflow search, trajectory collection, and within-task ranking.
-- Conversation rendering, LoRA training, validation-loss checkpoint selection,
-  and BF16/FP8 model export.
-- All 12 synthetic research tasks, with their initial workflows and train/test
-  split.
-- Synthetic-task pairwise evaluation and ScienceAgentBench/MLR-Bench adapters.
-- Separate configurations for the first and second MASS cycles.
+<a name="whats-included"></a>
+
+## ✨ What's included
+
+- **Workflow search:** RHI, trajectory collection, and within-task ranking.
+- **Post-training:** conversation rendering, assistant-only loss masks, LoRA,
+  validation-loss checkpoint selection, and BF16/FP8 model export.
+- **12 synthetic tasks:** every task prompt and initial workflow, with the
+  nine-task training split and three-task test split.
+- **Evaluation:** synthetic-task pairwise judging and ScienceAgentBench/MLR-Bench
+  adapters.
+- **Two MASS cycles:** separate configurations for the first and second updates.
 
 The code runs independently of the original research repository. Model weights,
 task datasets, trajectories, and checkpoints are downloaded or generated when
 needed.
 
-## Quick start
+<a name="quick-start"></a>
 
-From your cloned `mass` directory, preview the first cycle and run the offline tests:
+## 🚀 Quick start
+
+### 1. Preview the pipeline
+
+From your cloned `mass` directory, preview the first cycle and run the offline
+tests. These commands need no GPU or model server:
 
 ```bash
 python3 -m mass plan --config configs/paper.json
@@ -46,7 +71,10 @@ python3 -m unittest discover -s tests -v
 
 `plan` prints the configuration and training command without executing them.
 The tests use small fixtures and make no model calls. The RHI integration test
-requires the core dependencies and is skipped when they are unavailable.
+requires [the core dependencies](requirements-core.txt) and is skipped when
+they are unavailable.
+
+### 2. Run your first search
 
 For an actual experiment, follow the [setup guide](docs/running.md). It covers
 Python environments, model downloads, vLLM serving, and GPU allocation. Once
@@ -59,7 +87,9 @@ python -m mass search --config configs/paper.json --tasks 51
 This uses the configured search budget. The [single-task example](docs/running.md#try-one-task)
 shows how to use a shorter search in a separate run directory.
 
-## Run a MASS cycle
+<a name="run-a-mass-cycle"></a>
+
+## 🔁 Run a MASS cycle
 
 The stages are separate commands so that you can inspect intermediate outputs
 and resume completed work.
@@ -75,17 +105,22 @@ and resume completed work.
 | `export` | The selected checkpoint merged into BF16 and FP8 models |
 
 Run a stage with `python -m mass <stage> --config <config>`.
-Use [configs/paper.json](configs/paper.json) for $\mathcal{L}^{(0)} \to \mathcal{L}^{(1)}$
-and [configs/cycle2.json](configs/cycle2.json) for $\mathcal{L}^{(1)} \to \mathcal{L}^{(2)}$.
+
+| Cycle | Model update | Configuration |
+|---|---|---|
+| First | $\mathcal{L}^{(0)} \to \mathcal{L}^{(1)}$ | [configs/paper.json](configs/paper.json) |
+| Second | $\mathcal{L}^{(1)} \to \mathcal{L}^{(2)}$ | [configs/cycle2.json](configs/cycle2.json) |
+
 The second cycle trains a fresh LoRA adapter on the merged first-cycle model.
 The [run guide](docs/running.md) gives the complete command sequence.
 
-The current $\mathcal{L}^{(k)}$ serves as executor, evaluator, and optimizer.
 For each eligible training task, ranks 1–15 enter training and rank 16 enters
 validation. The saved checkpoint with the lowest validation loss is selected.
 External judges are used for reporting, separately from this training loop.
 
-## Tasks and evaluation
+<a name="tasks-and-evaluation"></a>
+
+## 🧪 Tasks and evaluation
 
 The synthetic tasks cover finance, pharmacy, and robotics:
 
@@ -104,32 +139,37 @@ Use `rollout` and `report` for [synthetic-task evaluation](docs/running.md#synth
 The [public benchmark guide](benchmarks/README.md) describes ScienceAgentBench
 and MLR-Bench evaluation with $\mathcal{L}^{(k)}$ + qwen-code.
 
-## Repository layout
+<a name="repository-layout"></a>
+
+## 🗂️ Repository layout
 
 | Path | Contents |
 |---|---|
-| `mass/` | Pipeline commands and trajectory selection |
-| `configs/` | Cycle settings and base-model revisions |
-| `tasks/` | Task prompts, initial workflows, and teacher directive |
-| `harness_improvement/` | RHI feedback, workflow history, and updates |
-| `runtime/` | Episode runner and request logging proxy |
-| `training/` | Conversation rendering, LoRA training, and model export |
-| `evaluation/`, `evaluation_claudecodex/` | Workspace evidence and pairwise judging |
-| `benchmarks/` | Public benchmark setup, execution, and scoring |
-| `tests/` | Offline tests |
-| `tools/` | Model downloads, rollout pairing, and source archive utilities |
+| [mass/](mass/) | Pipeline commands and trajectory selection |
+| [configs/](configs/) | Cycle settings and base-model revisions |
+| [tasks/](tasks/) | Task prompts, initial workflows, and teacher directive |
+| [harness_improvement/](harness_improvement/) | RHI feedback, workflow history, and updates |
+| [runtime/](runtime/) | Episode runner and request logging proxy |
+| [training/](training/) | Conversation rendering, LoRA training, and model export |
+| [evaluation/](evaluation/), [evaluation_claudecodex/](evaluation_claudecodex/) | Workspace evidence and pairwise judging |
+| [benchmarks/](benchmarks/) | Public benchmark setup, execution, and scoring |
+| [tests/](tests/) | Offline tests |
+| [tools/](tools/) | Model downloads, rollout pairing, and source archive utilities |
+| [assets/](assets/) | README teaser figure |
 
-## Documentation
+<a name="documentation"></a>
 
-- [Setup and running experiments](docs/running.md)
-- [Task prompts and splits](tasks/README.md)
-- [Public benchmarks](benchmarks/README.md)
-- [Paper notation and training settings](docs/paper_to_code.md)
-- [Experiment support](docs/experiment_coverage.md)
-- [Implementation notes and current limitations](docs/reproduction.md)
-- [Development and source archives](docs/development.md)
-- [Contributing](CONTRIBUTING.md)
-- [Third-party software and data](NOTICE.md)
+## 📚 Documentation
+
+| Start here to… | Guide |
+|---|---|
+| Set up an experiment | [Installation and running](docs/running.md) |
+| Explore the synthetic tasks | [Task prompts and splits](tasks/README.md) |
+| Run ScienceAgentBench or MLR-Bench | [Public benchmarks](benchmarks/README.md) |
+| Connect the paper to the code | [Notation and training settings](docs/paper_to_code.md) |
+| Check which experiments are included | [Experiment support](docs/experiment_coverage.md) |
+| Understand protocol differences | [Implementation notes](docs/reproduction.md) |
+| Run tests or build a source ZIP | [Development guide](docs/development.md) |
 
 This repository supports the pipeline and benchmarks listed above; it does not
 include every paper ablation or analysis. The current RHI driver uses
@@ -137,3 +177,8 @@ fixed-reference comparisons and champion arbitration, which differs from
 Algorithm 1's direct comparison with the retained best output. The experiment
 support and implementation notes describe these differences and the current
 evaluation limitations.
+
+## 🤝 Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for changes, bug reports, and experiment
+extensions. [NOTICE.md](NOTICE.md) covers third-party software and data.

@@ -30,6 +30,19 @@ checkout; they do not depend on a local research-repository installation.
 Related resource: [Terminal-Bench-Science](https://github.com/harbor-framework/terminal-bench-science).
 No MASS results for that benchmark are reported in the README.
 
+## AstaBench (E2E-Bench-Hard) results
+
+Each model is evaluated on 40 tasks over three trials (120 task runs per model).
+Rubric scores show the mean and standard deviation across the three trials.
+Report counts combine all three trials; percentages are rounded to the nearest
+whole percent. The last column reports the mean score among delivered reports.
+
+| Player | Trial 1 | Trial 2 | Trial 3 | Mean rubric score ± std | Reports delivered (of 120) | Score among delivered reports |
+|---|---:|---:|---:|---:|---:|---:|
+| $\mathcal{L}^{(0)}$ + qwen-code | 0.051 | 0.052 | 0.055 | 0.053 ± 0.002 | 60 (50%) | 0.105 |
+| $\mathcal{L}^{(1)}$ + qwen-code | 0.053 | 0.052 | 0.059 | 0.055 ± 0.004 | 69 (58%) | 0.095 |
+| $\mathcal{L}^{(2)}$ + qwen-code | 0.062 | 0.053 | 0.085 | 0.067 ± 0.017 | 91 (76%) | 0.088 |
+
 ## Setup
 
 ```bash

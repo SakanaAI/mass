@@ -50,21 +50,24 @@ and differences from the reported runs.
 ## 📊 Benchmark results
 
 Results for the base model $\mathcal{L}^{(0)}$ and the models after one and two
-MASS cycles. Task and trial counts are per model. ScienceAgentBench and paper
-delivery are shown as percentages; other scores retain their reported scales.
+MASS cycles. Task and trial counts are per model. ScienceAgentBench and delivery
+rates are shown as percentages; other scores retain their reported scales.
 
 | Benchmark | Tasks × trials | $\mathcal{L}^{(0)}$ | $\mathcal{L}^{(1)}$ | $\mathcal{L}^{(2)}$ |
 |---|:---:|---:|---:|---:|
 | [ScienceAgentBench](https://github.com/OSU-NLP-Group/ScienceAgentBench) (%) | 102 × 3 | 28.8 ± 1.5 | 30.4 ± 2.0 | 31.7 ± 2.0 |
 | [MLR-Bench](https://github.com/chchenhui/mlrbench) | 107 × 3 | 1.71 ± 0.08 | 1.77 ± 0.09 | 2.25 ± 0.06 |
 | [MLR-Bench](https://github.com/chchenhui/mlrbench) papers delivered | 107 × 3 | 57% | 59% | 76% |
-| [AstaBench (E2E-Bench-Hard)](https://github.com/allenai/asta-bench#discovery-tasks-discovery) | 40 × 1 | 0.0051 | 0.053 | 0.062 |
+| [AstaBench (E2E-Bench-Hard)](https://github.com/allenai/asta-bench#discovery-tasks-discovery) | 40 × 3 | 0.053 ± 0.002 | 0.055 ± 0.004 | 0.067 ± 0.017 |
+| [AstaBench (E2E-Bench-Hard)](https://github.com/allenai/asta-bench#discovery-tasks-discovery) reports delivered | 40 × 3 | 50% | 58% | 76% |
 | [DSBench](https://github.com/LiqiangJing/DSBench) | 74 × 3 | 0.473 ± 0.029 | 0.465 ± 0.011 | 0.482 ± 0.025 |
 | [Terminal-Bench 2.0](https://github.com/harbor-framework/terminal-bench-2) | 89 × 2 | 0.373 ± 0.030 | 0.351 ± 0.030 | 0.362 ± 0.003 |
 | [SWE-bench Verified](https://huggingface.co/datasets/princeton-nlp/SWE-bench_Verified) | 500 × 1 | 0.635 | 0.597 | 0.605 |
 
-A single score is shown for evaluations with one trial. Paper delivery is
-reported separately from the MLR-Bench score. See the
+A single score is shown for evaluations with one trial. Delivery rates are
+reported separately from the MLR-Bench and AstaBench scores. The
+[AstaBench breakdown](benchmarks/README.md#astabench-e2e-bench-hard-results)
+includes trial scores, report counts, and scores among delivered reports. See the
 [benchmark resources](benchmarks/README.md#official-benchmark-resources) for
 official papers and code or data.
 

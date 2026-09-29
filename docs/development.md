@@ -35,7 +35,7 @@ outputs, and `configs/local*.json` are excluded by `.gitignore`.
 
 The source archive tools are optional; they are not needed to run experiments.
 `SOURCE_MANIFEST.json` lists the files included in a release and their SHA-256
-hashes, including the README figure and animation in `assets/`. Generated runs,
+hashes, including the README figure, animation, and video in `assets/`. Generated runs,
 downloaded dependencies, model weights, Git history, and local configuration
 files are not part of that manifest.
 
@@ -49,7 +49,7 @@ python3 tools/make_source_archive.py --output ../mass-source.zip
 The output path must not already exist. Files are stored under a single `mass/`
 directory. The archive uses fixed timestamps and permissions.
 The checker detects changed files and common personal-path, email, and
-credential patterns in the listed text files. The reviewed PNG and GIF are
+credential patterns in the listed text files. The reviewed PNG, GIF, and MP4 are
 checked by their hashes, file signatures, and individual size limits; their
 visible content and metadata require manual review. Other binary files are
 rejected. The checker does not inspect a hosting account or Git history, and

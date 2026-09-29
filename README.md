@@ -25,10 +25,10 @@ Post-training uses trajectories from the selected workflows to update those
 weights. The next cycle starts from the updated model.
 
 <p align="center">
-  <a href="assets/mass_teaser_minimal.gif">
-    <img src="assets/mass_teaser_minimal.gif" width="600" alt="Animated introduction to MASS: one model improves a team's workflow, learns from its trajectories, and repeats the cycle." />
-  </a>
+  <video src="https://github.com/SakanaAI/mass/raw/refs/heads/main/assets/mass_teaser_minimal.mp4" width="600" controls muted></video>
 </p>
+
+<p align="center"><a href="assets/mass_teaser_minimal.mp4">▶ Watch the MASS overview video (MP4)</a></p>
 
 ```text
 L^(0) ── RHI → post-training ──> L^(1) ── RHI → post-training ──> L^(2)
@@ -58,7 +58,7 @@ delivery are shown as percentages; other scores retain their reported scales.
 | [ScienceAgentBench](https://github.com/OSU-NLP-Group/ScienceAgentBench) (%) | 102 × 3 | 28.8 ± 1.5 | 30.4 ± 2.0 | 31.7 ± 2.0 |
 | [MLR-Bench](https://github.com/chchenhui/mlrbench) | 107 × 3 | 1.71 ± 0.08 | 1.77 ± 0.09 | 2.25 ± 0.06 |
 | [MLR-Bench](https://github.com/chchenhui/mlrbench) papers delivered | 107 × 3 | 57% | 59% | 76% |
-| [AstaBench](https://github.com/allenai/asta-bench) | 40 × 1 | 0.0051 | 0.053 | 0.062 |
+| [AstaBench (E2E-Bench-Hard)](https://github.com/allenai/asta-bench#discovery-tasks-discovery) | 40 × 1 | 0.0051 | 0.053 | 0.062 |
 | [DSBench](https://github.com/LiqiangJing/DSBench) | 74 × 3 | 0.473 ± 0.029 | 0.465 ± 0.011 | 0.482 ± 0.025 |
 | [Terminal-Bench 2.0](https://github.com/harbor-framework/terminal-bench-2) | 89 × 2 | 0.373 ± 0.030 | 0.351 ± 0.030 | 0.362 ± 0.003 |
 | [SWE-bench Verified](https://huggingface.co/datasets/princeton-nlp/SWE-bench_Verified) | 500 × 1 | 0.635 | 0.597 | 0.605 |
@@ -69,8 +69,8 @@ reported separately from the MLR-Bench score. See the
 official papers and code or data.
 
 The packaged MLR-Bench configuration covers an earlier 12-task subset. The
-107-task configuration and evaluation adapters for AstaBench, DSBench,
-Terminal-Bench 2.0, and SWE-bench Verified are not included. See
+107-task configuration and evaluation adapters for AstaBench (E2E-Bench-Hard),
+DSBench, Terminal-Bench 2.0, and SWE-bench Verified are not included. See
 [experiment support](docs/experiment_coverage.md) for the available runners.
 
 <a name="whats-included"></a>

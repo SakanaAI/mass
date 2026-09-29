@@ -13,9 +13,10 @@ PATTERNS = {
     "possible private key": re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
     "possible API credential": re.compile(r"\b(?:sk|ghp)[-_][A-Za-z0-9_-]{25,}"),
 }
-REVIEWED_IMAGE_ASSETS = {
+REVIEWED_MEDIA_ASSETS = {
     "assets/mass_teaser_figure.png": ((b"\x89PNG\r\n\x1a\n",), 2_000_000),
     "assets/mass_teaser_minimal.gif": ((b"GIF87a", b"GIF89a"), 8_000_000),
+    "assets/mass_teaser_minimal.mp4": ((b"\x00\x00\x00\x20ftyp",), 4_000_000),
 }
 
 
@@ -36,14 +37,14 @@ def check(root=ROOT, deny_terms=()):
             problems.append(f"Missing file: {name}")
             continue
         data = path.read_bytes()
-        signatures, size_limit = REVIEWED_IMAGE_ASSETS.get(name, ((), 2_000_000))
+        signatures, size_limit = REVIEWED_MEDIA_ASSETS.get(name, ((), 2_000_000))
         if len(data) > size_limit:
             problems.append(f"Unexpectedly large source file: {name}")
         if hashlib.sha256(data).hexdigest() != expected:
             problems.append(f"Source changed after review: {name}")
         if signatures:
             if not data.startswith(signatures):
-                problems.append(f"Invalid image asset: {name}")
+                problems.append(f"Invalid media asset: {name}")
             text = ""
         else:
             try:

@@ -39,7 +39,7 @@ The following experiment drivers and analyses are not included:
 | Behavioral internalization and SFT exposure | Delegation, handoff, revision, main-edit, and action-to-SFT-window/sampled-exposure analyses |
 | Generic-directive control | The separate design-free control, matching, and reporting; the teacher directive itself is included |
 | Additional MLR-Bench statistics | Delivered-paper counts, conditional scores, delegation statistics, and Welch/Fisher/paired sign tests |
-| AstaBench, DSBench, Terminal-Bench 2.0, and SWE-bench Verified | Execution/scoring adapters |
+| AstaBench (E2E-Bench-Hard), DSBench, Terminal-Bench 2.0, and SWE-bench Verified | Execution/scoring adapters |
 
 For implementation locations and model notation, see the
 [paper-to-code mapping](paper_to_code.md). For commands, start with the

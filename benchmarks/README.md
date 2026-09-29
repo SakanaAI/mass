@@ -9,8 +9,8 @@ MASS training.
 The [README results](../README.md#benchmark-results) include an expanded
 107-task, three-trial MLR-Bench evaluation. Its task configuration is not
 included here; the MLR-Bench instructions below describe the packaged 12-task,
-five-trial setup. Evaluation adapters for AstaBench, DSBench, Terminal-Bench
-2.0, and SWE-bench Verified are also not included.
+five-trial setup. Evaluation adapters for AstaBench (E2E-Bench-Hard), DSBench,
+Terminal-Bench 2.0, and SWE-bench Verified are also not included.
 
 Run commands from the repository root unless a subshell changes directory.
 Use Python 3.12 and Docker with Compose. The adapters require the pinned Harbor
@@ -22,7 +22,7 @@ checkout; they do not depend on a local research-repository installation.
 |---|---|---|
 | ScienceAgentBench | [Paper](https://arxiv.org/abs/2410.05080) | [Official repository](https://github.com/OSU-NLP-Group/ScienceAgentBench) |
 | MLR-Bench | [Paper](https://arxiv.org/abs/2505.19955) | [Official repository](https://github.com/chchenhui/mlrbench) |
-| AstaBench | [Paper](https://arxiv.org/abs/2510.21652) | [Official repository](https://github.com/allenai/asta-bench) |
+| AstaBench (E2E-Bench-Hard) | [Paper](https://arxiv.org/abs/2510.21652) | [Official repository](https://github.com/allenai/asta-bench#discovery-tasks-discovery) |
 | DSBench | [Paper](https://arxiv.org/abs/2409.07703) | [Official repository](https://github.com/LiqiangJing/DSBench) |
 | Terminal-Bench 2.0 | [Paper](https://arxiv.org/abs/2601.11868) | [Version 2.0 repository](https://github.com/harbor-framework/terminal-bench-2) |
 | SWE-bench Verified | [Original SWE-bench paper](https://arxiv.org/abs/2310.06770) | [Verified dataset](https://huggingface.co/datasets/princeton-nlp/SWE-bench_Verified) |

@@ -54,7 +54,7 @@ delivery are shown as percentages; other scores retain their reported scales.
 | MLR-Bench papers delivered | 107 × 3 | 57% | 59% | 76% |
 | AstaBench | 40 × 1 | 0.0051 | 0.053 | 0.062 |
 | DSBench | 74 × 3 | 0.473 ± 0.029 | 0.465 ± 0.011 | 0.482 ± 0.025 |
-| Terminal-Bench 2.0 | 89 × 2 | 0.373 ± 0.030 | 0.351 ± 0.30 | 0.362 ± 0.003 |
+| Terminal-Bench 2.0 | 89 × 2 | 0.373 ± 0.030 | 0.351 ± 0.030 | 0.362 ± 0.003 |
 | SWE-bench Verified | 500 × 1 | 0.635 | 0.597 | 0.605 |
 
 A single score is shown for evaluations with one trial. Paper delivery is

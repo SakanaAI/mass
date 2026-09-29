@@ -1,0 +1,28 @@
+{
+  "generation": 0,
+  "run_dir": "runs/L0",
+  "model_id": "Qwen/Qwen3.6-27B-FP8",
+  "parent_bf16": "models/L0-bf16",
+  "fp8_reference": "models/L0-fp8",
+  "next_bf16": "models/L1-bf16",
+  "next_fp8": "models/L1-fp8",
+  "endpoint": "http://127.0.0.1:8001/v1",
+  "proxy_port": 9001,
+  "tasks": {
+    "train_candidates": [51, 53, 56, 202, 205, 221, 302, 307, 324],
+    "train": [51, 53, 56, 202, 205, 302, 307, 324],
+    "test": [60, 207, 305],
+    "excluded": [221]
+  },
+  "search": {"iterations": 11, "seed_base": 450000},
+  "collection": {"candidates": 18, "train_ranks": 15, "validation_rank": 16, "seed_base": 710000},
+  "ranking": {"opponents_per_episode": 6, "seed": 1234},
+  "training": {
+    "window": 49152, "context_overlap": 8192,
+    "steps": 1624, "lr": 0.00003, "warmup_steps": 5,
+    "min_lr_ratio": 0.1, "lora_r": 64, "lora_alpha": 128,
+    "lora_dropout": 0.05, "save_every": 50, "val_every": 150,
+    "replicas": 3, "gpus_per_rank": 2, "grad_accum": 1,
+    "ce_chunk": 512, "seed": 1234
+  }
+}

@@ -1,0 +1,15 @@
+## Execution requirements for the agent team (mandatory)
+
+1. Run the team for real. Every non-orchestrator role listed above must be executed as a separate sub-agent through the `agent` tool (subagent_type "general-purpose"). Simulating a role in your own turn does not count. You, the orchestrator, do not write pipeline or analysis code yourself; you set up the project, delegate, verify, and integrate.
+
+2. Foreground only. Every `agent` call must set `run_in_background: false`, so the worker's report comes back before you continue. Never launch background agents.
+
+3. One stage at a time. Launch a worker only when the inputs it needs already exist on disk. Launch several workers in one turn only if their tasks are independent and they write to disjoint files.
+
+4. Self-contained instructions. A worker sees nothing but your prompt and the filesystem. Each prompt must include: the role's instruction from the team definition above; the absolute workspace path; the exact files to create or modify; the interfaces or artifacts produced by earlier stages that it must use; the command(s) to run to verify its work; and the report you expect back (files written, commands run with results, key numbers, known problems).
+
+5. Verify before you build on it. After each report, check the worker's output yourself (run the entry point, inspect the artifacts). If the check fails or the report shows problems, re-delegate to the same role with a corrected, narrower instruction instead of fixing it yourself.
+
+6. Bounded work. Give each worker one deliverable it can finish in a single run: a handful of files and one verification command. Split large roles into several sequential calls.
+
+7. Finish cleanly. Do not end your turn while a worker is running. Your final answer must summarize every worker call: role, what it was asked, status, and what you verified.

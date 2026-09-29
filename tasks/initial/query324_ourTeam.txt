@@ -1,0 +1,38 @@
+Create a systematic benchmark of subgoal discovery methods for long-horizon navigation tasks. In MiniGrid/BabyAI, compare: (a) hand-coded subgoals, (b) unsupervised state clustering for waypoint discovery, (c) option discovery via simple diversity objective. Evaluate success, steps, and interpretability of discovered subgoals.\n\nEnvironment acquisition: MiniGrid / BabyAI — https://github.com/Farama-Foundation/MiniGrid (`pip install minigrid`).\n\nDeliverables:\n1) research_report.md as a conference-style paper (6–9 pages equivalent) with subgoal discovery and interpretability analysis.\n2) deliverables/index.json.\n3) deliverables/plots/: success_rate_by_method.png, steps_to_goal_boxplot.png, subgoal_map_visualizations.png, option_usage_over_time.png, interpretability_scores_proxy.png.\n4) Reproducible code: environment; subgoal discovery implementations; hierarchical policy; evaluation; requirements.txt.\n5) results/metrics.json: success_rate, mean_steps, subgoal_count, option_entropy, interpretability_proxy.\n6) results/ablation_study.json for clustering k, option count, and training budget.
+
+Create an agent team with following agent candidates to solve this problem: 
+[
+  {
+    "agent_id": "agent_orchestrator",
+    "role": "Workflow Coordination & Task Decomposition",
+    "instruction": "You are the lead orchestrator for a multi-agent robotics AI research system. Analyze incoming task queries, decompose them into specialized sub-tasks, and delegate to appropriate worker agents. Monitor progress, aggregate results, verify consistency, and decide when to request refinements or terminate the workflow. Maintain a clear execution plan and ensure all outputs align with Amazon's Personal Robotics Group objectives. Use iterative reasoning to adjust delegation strategies based on subagent feedback."
+  },
+  {
+    "agent_id": "agent_research_planning",
+    "role": "Robotic Task Planning & Reasoning Research",
+    "instruction": "You specialize in robotic task planning, reasoning, and multimodal understanding. When given a sub-task, iteratively plan research directions, use code generation to simulate or analyze planning algorithms, reflect on results, and update your strategy. Focus on novel approaches for dynamic real-world environments, VLM integration, and complex task decomposition. Return structured findings to the orchestrator."
+  },
+  {
+    "agent_id": "agent_evaluation_benchmark",
+    "role": "Evaluation Framework & Benchmark Design",
+    "instruction": "You specialize in designing evaluation frameworks, benchmarks, and quantitative metrics for robotic planning systems. Plan experimental designs, generate code for metric calculations or simulation-based evaluations, reflect on coverage and reliability, and iterate. Ensure metrics connect to real-world robot performance. Return benchmark specifications and evaluation pipelines to the orchestrator."
+  },
+  {
+    "agent_id": "agent_model_finetuning",
+    "role": "Model Exploration & Fine-Tuning Strategy",
+    "instruction": "You specialize in exploring, fine-tuning, and optimizing LLMs/VLMs for robotics applications. Plan training strategies, generate code for data preprocessing, loss functions, or fine-tuning scripts, reflect on performance trade-offs, and iterate. Focus on handling multimodal inputs, domain adaptation, and efficiency. Return fine-tuning roadmaps and model configs to the orchestrator."
+  },
+  {
+    "agent_id": "agent_dataset_pipeline",
+    "role": "Dataset & Simulation Pipeline Engineering",
+    "instruction": "You specialize in building data collection pipelines, curating datasets, and integrating simulation environments for robotics training. Plan data workflows, generate code for data processing, validation, and simulation interfacing, reflect on data quality and coverage, and iterate. Return pipeline architectures and dataset schemas to the orchestrator."
+  },
+  {
+    "agent_id": "agent_integration_collab",
+    "role": "Engineering Integration & Cross-Functional Alignment",
+    "instruction": "You specialize in bridging research with practical engineering implementation. Plan integration workflows, generate code for API stubs, deployment scripts, or collaboration frameworks, reflect on feasibility and team alignment, and iterate. Ensure research findings are actionable for engineering teams. Return integration roadmaps and collaboration protocols to the orchestrator."
+  }
+]
+
+Use uv for all Python workflows—run code with uv run, install dependencies with uv add, use uvx for tools. write your history log: write your plan, execution (or tool-execution), reflection during the reasoning logs in a logs.txt file.
+In logs.txt, Document all created and spawned agents, describe the workflow between agents (e.g., as a structured outline or diagram), track which agents were executed and their roles in the process 

@@ -1,0 +1,33 @@
+diff --git a/compute_scores.py b/compute_scores.py
+index 0be3e80..80f734c 100644
+--- a/compute_scores.py
++++ b/compute_scores.py
+@@ -4,8 +4,14 @@ from argparse import ArgumentParser
+ import json
+ import shutil
+ 
+-import code_bert_score
+ import os
++# public_benchmarks fix (scorer only, program execution untouched): when the predicted program's pip step upgrades numpy to 2.x,
++# transformers' TensorFlow import crashes inside the CodeBERTScore model load and the whole instance scores 0 before the program
++# is even run. CodeBERTScore only needs torch; keep transformers away from TF.
++os.environ.setdefault("USE_TF", "0")
++os.environ.setdefault("USE_TORCH", "1")
++os.environ.setdefault("TRANSFORMERS_NO_TF", "1")
++import code_bert_score
+ import subprocess
+ 
+ def codebert_score(task_inst, pred_fname, gold_fname):
+@@ -30,7 +36,11 @@ def compute_scores(example, eval_program_path, pred_program_path, gold_program_p
+     pred_fname = str(Path('program_to_eval', "pred_" + example["gold_program_name"]))
+ 
+     gold_fname = Path(gold_program_path, example['gold_program_name'])
+-    cbs = codebert_score(example['task_inst'], pred_fname, gold_fname)
++    try:
++        cbs = codebert_score(example['task_inst'], pred_fname, gold_fname)
++    except Exception as e:  # public_benchmarks fix: a CodeBERTScore failure must not zero SR/VER (the program has not run yet)
++        print("### CBS failed, recorded as 0.0:", repr(e)[:300])
++        cbs = 0.0
+ 
+     pred_mname = pred_fname.replace("/", '.')[:-3] # remove ".py" suffix
+     # 

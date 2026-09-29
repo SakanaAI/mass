@@ -1,0 +1,5 @@
+-r ../requirements-core.txt
+datasets==5.0.1
+docker==7.1.0
+tqdm>=4.66
+-e vendor/harbor

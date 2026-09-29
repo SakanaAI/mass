@@ -1,0 +1,35 @@
+# Local environments and caches
+.venv*/
+.runtime/
+node_modules/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+/configs/local*.json
+
+# Generated experiment data and downloaded dependencies
+runs/
+models/
+benchmarks/vendor/
+benchmarks/work/
+benchmarks/runtime/
+/pairs.json
+*.log
+
+# Build and editor output
+build/
+dist/
+*.egg-info/
+.DS_Store
+*.swp
+*.swo
+*.zip

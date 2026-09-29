@@ -1,0 +1,15 @@
+{
+  "designated_train": [51, 53, 56, 202, 205, 221, 302, 307, 324],
+  "test": [60, 207, 305],
+  "sft_train": [51, 53, 56, 202, 205, 302, 307, 324],
+  "excluded_from_teacher_collection": {
+    "221": "In the reported experiment, workflow search did not find a workflow that beat its reference. The full task prompt and initial workflow remain included."
+  },
+  "domains": {
+    "finance": [51, 53, 56, 60],
+    "pharmacy": [202, 205, 207, 221],
+    "robotics": [302, 305, 307, 324]
+  },
+  "task_prompt_pattern": "bare/query{task_id}.txt",
+  "initial_workflow_pattern": "initial/query{task_id}_ourTeam.txt"
+}

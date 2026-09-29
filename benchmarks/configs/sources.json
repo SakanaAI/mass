@@ -1,0 +1,5 @@
+{
+  "harbor": {"url": "https://github.com/laude-institute/harbor.git", "commit": "15da91c18580a25489f5bdf2ee71029f3ff3bb2e"},
+  "ScienceAgentBench": {"url": "https://github.com/OSU-NLP-Group/ScienceAgentBench.git", "commit": "c26e151ed601ba109dc4d35e057ff8e73fec469d"},
+  "mlrbench": {"url": "https://github.com/chchenhui/mlrbench.git", "commit": "f728d571a992d71c8b526eeb4d9ab6bb5c8cc824"}
+}

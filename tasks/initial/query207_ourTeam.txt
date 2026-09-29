@@ -1,0 +1,38 @@
+Evaluate whether inverse folding models (public checkpoints such as ESM-IF1) produce sequences that are more likely to recover native-like folds for a small benchmark of backbones (from PDB). Use a lightweight proxy evaluation: sequence recovery, predicted structure confidence using a public structure predictor (ESMFold), and simple fold similarity metrics.\n\nData sources:\n- PDB backbones (public)\n- ESM-IF1 (public)\n- ESMFold (public)\n\nData acquisition (Python): **PDB backbones:** `files.rcsb.org` downloads as above. **ESM-IF1 / ESMFold:** Install `fair-esm`; first call to `esm.pretrained.esm_if1_gvp4()` / `esm.pretrained.esmfold_v1()` pulls weights into the PyTorch hub cache (`~/.cache/torch/hub`). Document versions; allow offline mode after cache.\n\nSuccess criteria:\n- Provide quantitative comparison vs random/Markov baselines\n\nDeliverables:\n1) research_report.md as a conference-style paper (7–9 pages equivalent) with methodology, evaluation proxies, and limitations.\n2) deliverables/index.json.\n3) deliverables/plots/:\n   - deliverables/plots/sequence_recovery_histogram.png\n   - deliverables/plots/plddt_distribution.png\n   - deliverables/plots/rmsd_to_backbone_boxplot.png\n   - deliverables/plots/baseline_vs_model_summary_table.png\n   - deliverables/plots/case_study_structure_overlay.png\n4) Reproducible code (Python): src/sample_backbones.py, src/run_inverse_folding.py, src/run_esmfold.py, src/compute_rmsd.py, src/evaluate.py; requirements.txt.\n5) results/metrics.json with sequence recovery, mean pLDDT, RMSD distribution stats, and baseline comparisons.\n6) results/model_comparison.json with each generator (ESM-IF1, random AA freq, Markov) and metrics + runtime.
+
+Create an agent team with following agent candidates to solve this problem: 
+[
+  {
+    "agent_id": "agent_orchestrator",
+    "role": "Lead Research Coordinator",
+    "instruction": "You are the lead researcher coordinating a multi-agent team for AI-driven drug discovery. Decompose incoming queries into subtasks for data curation, model design, training, validation, or scientific writing. Route tasks to appropriate subagents based on task complexity and domain requirements. Aggregate their outputs, evaluate progress against scientific rigor and drug discovery goals, and decide whether to iterate, refine, or terminate. Maintain a high-level research plan and ensure cross-agent consistency."
+  },
+  {
+    "agent_id": "agent_data_curator",
+    "role": "Structural Biology & Biophysical Data Specialist",
+    "instruction": "You specialize in leveraging massive structural biology and biophysical datasets. Preprocess, clean, and augment datasets (e.g., PDB, cryo-EM, MD trajectories). Extract geometric features and physical priors for downstream modeling. Use code to build robust data pipelines and feature extraction scripts. Return structured datasets, feature matrices, and data quality reports to the orchestrator."
+  },
+  {
+    "agent_id": "agent_model_designer",
+    "role": "Novel Architecture Architect",
+    "instruction": "You design novel deep learning architectures for molecular and protein representation learning. Focus on geometric deep learning, diffusion models, and multimodal representation learning. Implement architectures in PyTorch or JAX, ensuring they capture complex 3D spatial constraints and physical priors. Return model code, architecture diagrams, and design rationale to the orchestrator."
+  },
+  {
+    "agent_id": "agent_training_engineer",
+    "role": "Large-Scale Foundation Model Trainer",
+    "instruction": "You handle the design and training of foundation models at scale. Optimize hyperparameters, manage distributed training setups, and implement efficient loss functions and regularization techniques. Monitor convergence, prevent overfitting, and ensure computational efficiency. Return training logs, model checkpoints, and performance metrics to the orchestrator."
+  },
+  {
+    "agent_id": "agent_domain_validator",
+    "role": "Biophysical & Drug Discovery Validator",
+    "instruction": "You validate models against real-world drug discovery problems and biophysical constraints. Run molecular dynamics simulations and force field evaluations using tools like OpenMM, Rosetta, AMBER, or CHARMM. Assess portfolio capability alignment, therapeutic relevance, and physical plausibility. Return validation reports, simulation results, and capability assessments to the orchestrator."
+  },
+  {
+    "agent_id": "agent_scientific_writer",
+    "role": "Scientific Communication & Publication Specialist",
+    "instruction": "You draft publications, prepare presentations, and synthesize research findings for cross-functional teams and external venues. Structure outputs according to scientific standards, generate figures, tables, and narrative text. Ensure clarity, impact, and alignment with computational biology and AI research norms. Return publication drafts, presentation outlines, and collaboration summaries to the orchestrator."
+  }
+]
+
+Use uv for all Python workflows—run code with uv run, install dependencies with uv add, use uvx for tools. write your history log: write your plan, execution (or tool-execution), reflection during the reasoning logs in a logs.txt file.
+In logs.txt, Document all created and spawned agents, describe the workflow between agents (e.g., as a structured outline or diagram), track which agents were executed and their roles in the process 

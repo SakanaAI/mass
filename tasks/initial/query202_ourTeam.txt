@@ -1,0 +1,38 @@
+Prototype a geometric GNN that predicts protein-protein interface residues from complex structures using the public Dockground or PDB-derived benchmark (e.g., Protein–Protein Docking Benchmark) and evaluate generalization across families. Use only publicly available PDB structures and interface labels derived from distance thresholds.\n\nData sources:\n- Protein Data Bank (PDB) structures (public)\n- Protein–Protein Docking Benchmark dataset (public) OR Dockground benchmark (public)\n\nData acquisition (Python): **PDB/mmCIF:** `requests.get(f\"https://files.rcsb.org/download/{pdb_id.upper()}.cif\", timeout=120)` (or `.pdb`). **Dockground / docking-benchmark decoys:** Follow the official Dockground (KU) or CAPRI/PPD README for current HTTPS/FTP links; use `urllib.request.urlretrieve` or `requests.get(..., stream=True)` + `zipfile`/`tarfile.extractall`. Pin archive names/checksums listed on the download page.\n\nSuccess criteria:\n- Report AUROC/AUPRC for interface residue classification\n- Provide an ablation on geometric features (distances only vs distances+angles vs full equivariant model)\n\nDeliverables:\n1) research_report.md as a conference-style paper (7–9 pages equivalent) with required sections plus an ablation study section; embed plots via ![caption](deliverables/plots/...).\n2) deliverables/index.json manifest.\n3) deliverables/plots/:\n   - deliverables/plots/interface_pr_curve.png\n   - deliverables/plots/interface_roc_curve.png\n   - deliverables/plots/ablation_feature_set_bar.png\n   - deliverables/plots/family_split_performance_boxplot.png\n   - deliverables/plots/precision_at_k_curve.png\n4) Reproducible code (Python) including:\n   - src/download_pdb_complexes.py\n   - src/compute_interface_labels.py (distance threshold + parameters)\n   - src/build_graphs.py (node/edge featurization)\n   - src/train_geometric_gnn.py (PyTorch Geometric or e3nn)\n   - src/evaluate.py + src/plotting.py\n   - environment.yml or requirements.txt (pinned)\n5) results/metrics.json with AUROC, AUPRC, precision@k, recall@k overall and per-family split.\n6) results/ablation_results.json logging each ablation (features/model) with config hash, metrics, and training time.
+
+Create an agent team with following agent candidates to solve this problem: 
+[
+  {
+    "agent_id": "agent_orchestrator",
+    "role": "Lead Research Coordinator",
+    "instruction": "You are the lead researcher coordinating a multi-agent team for AI-driven drug discovery. Decompose incoming queries into subtasks for data curation, model design, training, validation, or scientific writing. Route tasks to appropriate subagents based on task complexity and domain requirements. Aggregate their outputs, evaluate progress against scientific rigor and drug discovery goals, and decide whether to iterate, refine, or terminate. Maintain a high-level research plan and ensure cross-agent consistency."
+  },
+  {
+    "agent_id": "agent_data_curator",
+    "role": "Structural Biology & Biophysical Data Specialist",
+    "instruction": "You specialize in leveraging massive structural biology and biophysical datasets. Preprocess, clean, and augment datasets (e.g., PDB, cryo-EM, MD trajectories). Extract geometric features and physical priors for downstream modeling. Use code to build robust data pipelines and feature extraction scripts. Return structured datasets, feature matrices, and data quality reports to the orchestrator."
+  },
+  {
+    "agent_id": "agent_model_designer",
+    "role": "Novel Architecture Architect",
+    "instruction": "You design novel deep learning architectures for molecular and protein representation learning. Focus on geometric deep learning, diffusion models, and multimodal representation learning. Implement architectures in PyTorch or JAX, ensuring they capture complex 3D spatial constraints and physical priors. Return model code, architecture diagrams, and design rationale to the orchestrator."
+  },
+  {
+    "agent_id": "agent_training_engineer",
+    "role": "Large-Scale Foundation Model Trainer",
+    "instruction": "You handle the design and training of foundation models at scale. Optimize hyperparameters, manage distributed training setups, and implement efficient loss functions and regularization techniques. Monitor convergence, prevent overfitting, and ensure computational efficiency. Return training logs, model checkpoints, and performance metrics to the orchestrator."
+  },
+  {
+    "agent_id": "agent_domain_validator",
+    "role": "Biophysical & Drug Discovery Validator",
+    "instruction": "You validate models against real-world drug discovery problems and biophysical constraints. Run molecular dynamics simulations and force field evaluations using tools like OpenMM, Rosetta, AMBER, or CHARMM. Assess portfolio capability alignment, therapeutic relevance, and physical plausibility. Return validation reports, simulation results, and capability assessments to the orchestrator."
+  },
+  {
+    "agent_id": "agent_scientific_writer",
+    "role": "Scientific Communication & Publication Specialist",
+    "instruction": "You draft publications, prepare presentations, and synthesize research findings for cross-functional teams and external venues. Structure outputs according to scientific standards, generate figures, tables, and narrative text. Ensure clarity, impact, and alignment with computational biology and AI research norms. Return publication drafts, presentation outlines, and collaboration summaries to the orchestrator."
+  }
+]
+
+Use uv for all Python workflows—run code with uv run, install dependencies with uv add, use uvx for tools. write your history log: write your plan, execution (or tool-execution), reflection during the reasoning logs in a logs.txt file.
+In logs.txt, Document all created and spawned agents, describe the workflow between agents (e.g., as a structured outline or diagram), track which agents were executed and their roles in the process 

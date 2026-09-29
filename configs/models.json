@@ -1,0 +1,4 @@
+{
+  "L0-bf16": {"repo_id": "Qwen/Qwen3.6-27B", "revision": "6a9e13bd6fc8f0983b9b99948120bc37f49c13e9"},
+  "L0-fp8": {"repo_id": "Qwen/Qwen3.6-27B-FP8", "revision": "e89b16ebf1988b3d6befa7de50abc2d76f26eb09"}
+}

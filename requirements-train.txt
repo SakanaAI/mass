@@ -1,0 +1,6 @@
+-r requirements-core.txt
+torch==2.11.0
+transformers==5.15.1
+peft==0.20.0
+safetensors==0.8.0
+flash-linear-attention==0.5.2

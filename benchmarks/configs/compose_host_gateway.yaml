@@ -1,0 +1,6 @@
+# harbor --extra-docker-compose override: lets the task container reach the host-side logging proxy
+# (bench_api_proxy.py listening on the docker bridge address 172.17.0.1) as http://host.docker.internal:<port>.
+services:
+  main:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

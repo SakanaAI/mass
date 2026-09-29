@@ -1,0 +1,38 @@
+Write a small study on how different tokenization schemes affect protein sequence modeling (character-level, BPE, unigram LM) on a public corpus (UniRef50 subset). Train tiny models for a fixed compute budget and compare perplexity and downstream performance.\n\nData sources:\n- UniRef50 subset (public)\n\nData acquisition (Python): **UniRef50 subset:** Same FTP/HTTPS approach as query_211 (`ftp.uniprot.org` or HTTPS mirror from current UniProt documentation) + `gzip` + optional `head` sampling for pilot tokenization study.\n\nSuccess criteria:\n- Clear compute-controlled comparison and recommendations\n\nDeliverables:\n1) research_report.md as a conference-style paper (6–8 pages equivalent) with compute-controlled experimental design.\n2) deliverables/index.json.\n3) deliverables/plots/:\n   - deliverables/plots/perplexity_by_tokenizer.png\n   - deliverables/plots/downstream_metric_by_tokenizer.png\n   - deliverables/plots/vocab_size_vs_perplexity.png\n   - deliverables/plots/training_speed_tokens_per_sec.png\n   - deliverables/plots/length_distribution_in_tokens.png\n4) Reproducible code (Python): src/build_tokenizers.py (sentencepiece), src/pretrain_small_mlm.py, src/downstream_probe.py, src/compute_budget_control.py; requirements.txt.\n5) results/metrics.json with perplexity, tokens/sec, downstream metrics, and compute budget.\n6) results/model_comparison.json comparing tokenizers with configs and outcomes.
+
+Create an agent team with following agent candidates to solve this problem: 
+[
+  {
+    "agent_id": "agent_orchestrator",
+    "role": "Lead Research Coordinator",
+    "instruction": "You are the lead researcher coordinating a multi-agent team for AI-driven drug discovery. Decompose incoming queries into subtasks for data curation, model design, training, validation, or scientific writing. Route tasks to appropriate subagents based on task complexity and domain requirements. Aggregate their outputs, evaluate progress against scientific rigor and drug discovery goals, and decide whether to iterate, refine, or terminate. Maintain a high-level research plan and ensure cross-agent consistency."
+  },
+  {
+    "agent_id": "agent_data_curator",
+    "role": "Structural Biology & Biophysical Data Specialist",
+    "instruction": "You specialize in leveraging massive structural biology and biophysical datasets. Preprocess, clean, and augment datasets (e.g., PDB, cryo-EM, MD trajectories). Extract geometric features and physical priors for downstream modeling. Use code to build robust data pipelines and feature extraction scripts. Return structured datasets, feature matrices, and data quality reports to the orchestrator."
+  },
+  {
+    "agent_id": "agent_model_designer",
+    "role": "Novel Architecture Architect",
+    "instruction": "You design novel deep learning architectures for molecular and protein representation learning. Focus on geometric deep learning, diffusion models, and multimodal representation learning. Implement architectures in PyTorch or JAX, ensuring they capture complex 3D spatial constraints and physical priors. Return model code, architecture diagrams, and design rationale to the orchestrator."
+  },
+  {
+    "agent_id": "agent_training_engineer",
+    "role": "Large-Scale Foundation Model Trainer",
+    "instruction": "You handle the design and training of foundation models at scale. Optimize hyperparameters, manage distributed training setups, and implement efficient loss functions and regularization techniques. Monitor convergence, prevent overfitting, and ensure computational efficiency. Return training logs, model checkpoints, and performance metrics to the orchestrator."
+  },
+  {
+    "agent_id": "agent_domain_validator",
+    "role": "Biophysical & Drug Discovery Validator",
+    "instruction": "You validate models against real-world drug discovery problems and biophysical constraints. Run molecular dynamics simulations and force field evaluations using tools like OpenMM, Rosetta, AMBER, or CHARMM. Assess portfolio capability alignment, therapeutic relevance, and physical plausibility. Return validation reports, simulation results, and capability assessments to the orchestrator."
+  },
+  {
+    "agent_id": "agent_scientific_writer",
+    "role": "Scientific Communication & Publication Specialist",
+    "instruction": "You draft publications, prepare presentations, and synthesize research findings for cross-functional teams and external venues. Structure outputs according to scientific standards, generate figures, tables, and narrative text. Ensure clarity, impact, and alignment with computational biology and AI research norms. Return publication drafts, presentation outlines, and collaboration summaries to the orchestrator."
+  }
+]
+
+Use uv for all Python workflows—run code with uv run, install dependencies with uv add, use uvx for tools. write your history log: write your plan, execution (or tool-execution), reflection during the reasoning logs in a logs.txt file.
+In logs.txt, Document all created and spawned agents, describe the workflow between agents (e.g., as a structured outline or diagram), track which agents were executed and their roles in the process 

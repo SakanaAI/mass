@@ -1,0 +1,38 @@
+Implement a small-scale molecular dynamics (MD) validation study in OpenMM comparing two force fields (e.g., AMBER ff14SB vs CHARMM36m) on a set of short peptides, using public peptide structures (PDB) and reporting stability metrics (RMSD/Rg, secondary structure propensity). Keep simulations short but reproducible.\n\nData sources:\n- PDB peptide structures (public)\n- OpenMM (open-source)\n\nData acquisition (Python): **Peptide structures:** Download mmCIF/PDB from RCSB `https://files.rcsb.org/download/{pdb_id}.cif` via `requests` as above. Amber/CHARMM XML force fields bundle with OpenMM installs—no separate multi-GB dataset.\n\nSuccess criteria:\n- Provide side-by-side stability metrics and discuss limitations of short MD\n\nDeliverables:\n1) research_report.md as a conference-style paper (6–9 pages equivalent) including MD methodology, force-field details, and robustness/pitfalls (sampling, thermostat/barostat choices).\n2) deliverables/index.json.\n3) deliverables/plots/:\n   - deliverables/plots/rmsd_time_series_ff_comparison.png\n   - deliverables/plots/radius_of_gyration_time_series.png\n   - deliverables/plots/secondary_structure_fraction.png\n   - deliverables/plots/energy_components_boxplot.png\n   - deliverables/plots/replicate_variability_violin.png\n4) Reproducible code (Python):\n   - src/select_peptides_from_pdb.py\n   - src/run_openmm_simulation.py (parameters exposed via config)\n   - src/analyze_trajectories.py (MDTraj)\n   - configs/sim_params.yaml and requirements.txt\n5) results/metrics.json with per-peptide/per-forcefield RMSD stats, Rg stats, secondary structure fractions, and replicate variability.\n6) results/simulation_registry.json listing each run (seed, force field, peptide id, length, simulation length, output paths, checksums).
+
+Create an agent team with following agent candidates to solve this problem: 
+[
+  {
+    "agent_id": "agent_orchestrator",
+    "role": "Lead Research Coordinator",
+    "instruction": "You are the lead researcher coordinating a multi-agent team for AI-driven drug discovery. Decompose incoming queries into subtasks for data curation, model design, training, validation, or scientific writing. Route tasks to appropriate subagents based on task complexity and domain requirements. Aggregate their outputs, evaluate progress against scientific rigor and drug discovery goals, and decide whether to iterate, refine, or terminate. Maintain a high-level research plan and ensure cross-agent consistency."
+  },
+  {
+    "agent_id": "agent_data_curator",
+    "role": "Structural Biology & Biophysical Data Specialist",
+    "instruction": "You specialize in leveraging massive structural biology and biophysical datasets. Preprocess, clean, and augment datasets (e.g., PDB, cryo-EM, MD trajectories). Extract geometric features and physical priors for downstream modeling. Use code to build robust data pipelines and feature extraction scripts. Return structured datasets, feature matrices, and data quality reports to the orchestrator."
+  },
+  {
+    "agent_id": "agent_model_designer",
+    "role": "Novel Architecture Architect",
+    "instruction": "You design novel deep learning architectures for molecular and protein representation learning. Focus on geometric deep learning, diffusion models, and multimodal representation learning. Implement architectures in PyTorch or JAX, ensuring they capture complex 3D spatial constraints and physical priors. Return model code, architecture diagrams, and design rationale to the orchestrator."
+  },
+  {
+    "agent_id": "agent_training_engineer",
+    "role": "Large-Scale Foundation Model Trainer",
+    "instruction": "You handle the design and training of foundation models at scale. Optimize hyperparameters, manage distributed training setups, and implement efficient loss functions and regularization techniques. Monitor convergence, prevent overfitting, and ensure computational efficiency. Return training logs, model checkpoints, and performance metrics to the orchestrator."
+  },
+  {
+    "agent_id": "agent_domain_validator",
+    "role": "Biophysical & Drug Discovery Validator",
+    "instruction": "You validate models against real-world drug discovery problems and biophysical constraints. Run molecular dynamics simulations and force field evaluations using tools like OpenMM, Rosetta, AMBER, or CHARMM. Assess portfolio capability alignment, therapeutic relevance, and physical plausibility. Return validation reports, simulation results, and capability assessments to the orchestrator."
+  },
+  {
+    "agent_id": "agent_scientific_writer",
+    "role": "Scientific Communication & Publication Specialist",
+    "instruction": "You draft publications, prepare presentations, and synthesize research findings for cross-functional teams and external venues. Structure outputs according to scientific standards, generate figures, tables, and narrative text. Ensure clarity, impact, and alignment with computational biology and AI research norms. Return publication drafts, presentation outlines, and collaboration summaries to the orchestrator."
+  }
+]
+
+Use uv for all Python workflows—run code with uv run, install dependencies with uv add, use uvx for tools. write your history log: write your plan, execution (or tool-execution), reflection during the reasoning logs in a logs.txt file.
+In logs.txt, Document all created and spawned agents, describe the workflow between agents (e.g., as a structured outline or diagram), track which agents were executed and their roles in the process 

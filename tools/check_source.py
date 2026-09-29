@@ -13,6 +13,7 @@ PATTERNS = {
     "possible private key": re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
     "possible API credential": re.compile(r"\b(?:sk|ghp)[-_][A-Za-z0-9_-]{25,}"),
 }
+REVIEWED_PNG_ASSETS = {"assets/mass_teaser_figure.png"}
 
 
 def check(root=ROOT, deny_terms=()):
@@ -36,11 +37,16 @@ def check(root=ROOT, deny_terms=()):
             problems.append(f"Unexpectedly large source file: {name}")
         if hashlib.sha256(data).hexdigest() != expected:
             problems.append(f"Source changed after review: {name}")
-        try:
-            text = data.decode("utf-8")
-        except UnicodeDecodeError:
-            problems.append(f"Unexpected binary source: {name}")
-            continue
+        if name in REVIEWED_PNG_ASSETS:
+            if not data.startswith(b"\x89PNG\r\n\x1a\n"):
+                problems.append(f"Invalid PNG asset: {name}")
+            text = ""
+        else:
+            try:
+                text = data.decode("utf-8")
+            except UnicodeDecodeError:
+                problems.append(f"Unexpected binary source: {name}")
+                continue
         for kind, pattern in PATTERNS.items():
             if pattern.search(text):
                 problems.append(f"{kind}: {name}")

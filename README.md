@@ -1,5 +1,7 @@
 # MASS: Multi-Agent Self-Supervision
 
+![MASS overview: optimize a multi-agent workflow, distill its trajectories into model weights, and repeat.](assets/mass_teaser_figure.png)
+
 MASS alternates between automatic workflow updates (RHI) and post-training.
 RHI searches for multi-agent workflows with a fixed language model. The model
 then learns from trajectories generated under the selected workflows, and the

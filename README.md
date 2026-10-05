@@ -61,11 +61,15 @@ rates are shown as percentages; other scores retain their reported scales.
 | [AstaBench (E2E-Bench-Hard)](https://github.com/allenai/asta-bench#discovery-tasks-discovery) | 40 × 3 | 0.053 ± 0.002 | 0.055 ± 0.004 | 0.067 ± 0.017 |
 | [AstaBench (E2E-Bench-Hard)](https://github.com/allenai/asta-bench#discovery-tasks-discovery) reports delivered | 40 × 3 | 50% | 58% | 76% |
 | [DSBench](https://github.com/LiqiangJing/DSBench) | 74 × 3 | 0.473 ± 0.029 | 0.465 ± 0.011 | 0.482 ± 0.025 |
-| [Terminal-Bench 2.0](https://github.com/harbor-framework/terminal-bench-2) | 89 × 2 | 0.373 ± 0.030 | 0.351 ± 0.030 | 0.362 ± 0.003 |
-| [SWE-bench Verified](https://huggingface.co/datasets/princeton-nlp/SWE-bench_Verified) | 500 × 1 | 0.635 | 0.597 | 0.605 |
+| [Terminal-Bench 2.0](https://github.com/harbor-framework/terminal-bench-2) | 89 × 3 | 0.375 ± 0.022 | 0.353 ± 0.021 | 0.352 ± 0.017 |
+| [SWE-bench Verified](https://huggingface.co/datasets/princeton-nlp/SWE-bench_Verified) | 500 × 3 | 0.626 ± 0.015 | 0.618 ± 0.019 | 0.611 ± 0.006 |
 
-A single score is shown for evaluations with one trial. Delivery rates are
-reported separately from the MLR-Bench and AstaBench scores. The
+Terminal-Bench 2.0 (official time limits) and SWE-bench Verified report mean
+pass rate ± sample standard deviation across three trials. Their task counts
+are the numbers attempted per trial; scores use tasks with results for all
+three models within each trial: 86/88/87 for Terminal-Bench and 499/499/496
+for SWE-bench. Delivery rates are reported separately from the MLR-Bench
+and AstaBench scores. The
 [AstaBench breakdown](benchmarks/README.md#astabench-e2e-bench-hard-results)
 includes trial scores, report counts, and scores among delivered reports. See the
 [benchmark resources](benchmarks/README.md#official-benchmark-resources) for

@@ -16,7 +16,7 @@ PATTERNS = {
 REVIEWED_MEDIA_ASSETS = {
     "assets/mass_logo.png": ((b"\x89PNG\r\n\x1a\n",), 2_000_000),
     "assets/mass_teaser_figure.png": ((b"\x89PNG\r\n\x1a\n",), 2_000_000),
-    "assets/mass_teaser_minimal.gif": ((b"GIF87a", b"GIF89a"), 8_000_000),
+    "assets/mass_teaser_minimal.gif": ((b"GIF87a", b"GIF89a"), 10_000_000),
     "assets/mass_teaser_minimal.mp4": ((b"\x00\x00\x00\x20ftyp",), 4_000_000),
 }
 

@@ -50,7 +50,7 @@ and differences from the reported runs.
 
 ## 📊 Benchmark results
 
-Results for athe base model $\mathcal{L}^{(0)}$ and the models after one and two
+Results for the base model $\mathcal{L}^{(0)}$ and the models after one and two
 MASS cycles. Task and trial counts are per model. ScienceAgentBench and delivery
 rates are shown as percentages; other scores retain their reported scales.
 

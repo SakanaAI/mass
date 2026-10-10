@@ -97,6 +97,53 @@ else:
 
 @unittest.skipUnless(importlib.util.find_spec("aiohttp"), "requires requirements-core.txt")
 class ProxyTests(unittest.IsolatedAsyncioTestCase):
+    async def test_proxy_requests_uncompressed_json_and_streams(self):
+        import gzip
+        import io
+        from aiohttp import web
+        from aiohttp.test_utils import TestClient, TestServer
+        from runtime.api_proxy import handle, on_startup
+
+        encodings = []
+
+        async def upstream(request):
+            encoding = request.headers.get("Accept-Encoding", "")
+            encodings.append(encoding)
+            is_stream = request.path.endswith("completions")
+            body = (b'data: {"choices": [], "usage": {"cost": 0.01}}\n\ndata: [DONE]\n\n'
+                    if is_stream else b'{"data":[{"id":"fixture-model"}]}')
+            headers = {"Content-Type": "text/event-stream" if is_stream else "application/json"}
+            if "gzip" in encoding:
+                body = gzip.compress(body)
+                headers["Content-Encoding"] = "gzip"
+            return web.Response(body=body, headers=headers)
+
+        app = web.Application()
+        app.router.add_route("*", "/{tail:.*}", upstream)
+        async with TestServer(app) as server:
+            log = io.StringIO()
+            proxy = web.Application()
+            proxy.update(upstream=str(server.make_url("/api")).rstrip("/"), log_fh=log,
+                         seq=0, keep_raw_sse=True)
+            proxy.on_startup.append(on_startup)
+
+            async def close(app):
+                await app["session"].close()
+
+            proxy.on_cleanup.append(close)
+            proxy.router.add_route("*", "/{tail:.*}", handle)
+            async with TestClient(TestServer(proxy)) as client:
+                for path in ("/v1/models", "/v1/chat/completions"):
+                    response = await client.get(path, headers={"accept-encoding": "gzip"})
+                    self.assertEqual(response.status, 200, await response.text())
+                    self.assertNotIn("Content-Encoding", response.headers)
+                    await response.read()
+            self.assertEqual(encodings, ["identity", "identity"])
+            rows = [json.loads(line) for line in log.getvalue().splitlines()]
+            self.assertEqual(rows[0]["response"]["data"][0]["id"], "fixture-model")
+            self.assertEqual(rows[1]["response"]["usage"]["cost"], 0.01)
+            self.assertIn("[DONE]", rows[1]["sse_raw"])
+
     async def test_proxy_exception_does_not_expose_authorization(self):
         import io
         from aiohttp import ClientResponseError, RequestInfo, web

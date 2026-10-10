@@ -3,8 +3,9 @@
 
     api_proxy.py --listen 9001 --upstream http://127.0.0.1:8001 --log api_requests.jsonl
 
-Every request is forwarded unchanged (method, path+query, headers minus
-hop-by-hop, body) and the upstream response is relayed unchanged (streaming
+Every request is forwarded unchanged except for hop-by-hop headers and
+Accept-Encoding, which is set to identity so logged bodies can be parsed.
+The upstream response is relayed unchanged (streaming
 SSE is relayed chunk-by-chunk as it arrives). One JSON line per request is
 appended to --log with the parsed request body and the response, where a
 streamed chat completion is reassembled into a single message (content,
@@ -13,7 +14,7 @@ reasoning_content, tool_calls, finish_reason, usage).
 Purpose: capture EXACTLY what qwen-code sends to the model (system prompt,
 tool schemas, message history incl. reasoning replay, compression) so
 training samples can be rendered from the very same messages the served
-student will see. Nothing is modified in either direction.
+student will see. Request and response body contents are not modified.
 """
 import argparse
 import asyncio
@@ -127,7 +128,9 @@ async def handle(request: web.Request):
     app = request.app
     body = await request.read()
     url = app["upstream"] + request.rel_url.path_qs
-    headers = {k: v for k, v in request.headers.items() if k.lower() not in HOP_BY_HOP}
+    headers = {k: v for k, v in request.headers.items()
+               if k.lower() not in HOP_BY_HOP and k.lower() != "accept-encoding"}
+    headers["Accept-Encoding"] = "identity"
     t0 = time.time()
     rec = {
         "ts_start": t0, "ts_start_iso": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t0)),

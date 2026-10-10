@@ -28,6 +28,7 @@ from evaluation_claudecodex.pairwise_schema import PairwiseJudgeResult
 from harness_improvement.llm_backend import (
     BACKEND_CHOICES,
     BACKEND_LOCAL_VLLM,
+    BACKEND_OPENROUTER,
     BACKEND_OPENAI_RESPONSES,
     JsonLLMBackend,
 )
@@ -284,13 +285,14 @@ def _adjacent_history_provenance_errors(
         if not isinstance(raw, str) or Path(raw).expanduser().resolve() != expected:
             errors.append(f"{field}={raw!r}, expected {str(expected)!r}")
 
-    if llm_backend == BACKEND_LOCAL_VLLM:
+    if llm_backend in (BACKEND_LOCAL_VLLM, BACKEND_OPENROUTER):
         actual_url = str(row.get("base_url") or "").rstrip("/")
         expected_url = str(base_url or "").rstrip("/")
         if actual_url != expected_url:
             errors.append(
                 f"base_url={row.get('base_url')!r}, expected {base_url!r}"
             )
+    if llm_backend == BACKEND_LOCAL_VLLM:
         metrics = row.get("call_metrics")
         cost = metrics.get("estimated_cost_usd") if isinstance(metrics, dict) else None
         if cost != 0.0:
@@ -1169,7 +1171,7 @@ def main() -> int:
         "--base-url",
         type=str,
         default="http://127.0.0.1:8000/v1",
-        help="OpenAI-compatible base URL for --llm-backend local-vllm.",
+        help="OpenAI-compatible base URL for local-vllm or openrouter.",
     )
     parser.add_argument(
         "--api-key-env",
@@ -1180,7 +1182,7 @@ def main() -> int:
             "externally; local vLLM uses VLLM_API_KEY when set, otherwise EMPTY."
         ),
     )
-    parser.add_argument("--reasoning-effort", type=str, default="xhigh", help="Reasoning effort for OpenAI Responses API")
+    parser.add_argument("--reasoning-effort", type=str, default=None, help="Reasoning effort (OpenRouter: medium; Responses: xhigh)")
     parser.add_argument(
         "--openai-background",
         action="store_true",
@@ -1514,11 +1516,11 @@ def main() -> int:
                 "--champion-repo-v0-root"
             )
 
-    model = args.model or (
-        "Qwen/Qwen3.5-9B"
-        if args.llm_backend == BACKEND_LOCAL_VLLM
-        else "gpt-5.5"
-    )
+    defaults = {BACKEND_LOCAL_VLLM: "Qwen/Qwen3.5-9B", BACKEND_OPENAI_RESPONSES: "gpt-5.5",
+                BACKEND_OPENROUTER: "openai/gpt-oss-120b:nitro"}
+    model = args.model or defaults[args.llm_backend]
+    if args.reasoning_effort is None:
+        args.reasoning_effort = "medium" if args.llm_backend == BACKEND_OPENROUTER else "xhigh"
 
     template = _read_query_template(
         query_file,
@@ -1584,11 +1586,9 @@ def main() -> int:
     run_cost_estimates: list[float] = []
     run_api_calls_total = 0
 
-    api_key_env = args.api_key_env or (
-        "VLLM_API_KEY"
-        if args.llm_backend == BACKEND_LOCAL_VLLM
-        else "OPENAI_API_KEY"
-    )
+    key_names = {BACKEND_LOCAL_VLLM: "VLLM_API_KEY", BACKEND_OPENAI_RESPONSES: "OPENAI_API_KEY",
+                 BACKEND_OPENROUTER: "OPENROUTER_API_KEY"}
+    api_key_env = args.api_key_env or key_names[args.llm_backend]
     api_key = os.getenv(api_key_env)
     if args.llm_backend == BACKEND_LOCAL_VLLM:
         api_key = api_key or "EMPTY"
@@ -1602,7 +1602,7 @@ def main() -> int:
             backend=args.llm_backend,
             model=model,
             api_key=api_key,
-            base_url=args.base_url if args.llm_backend == BACKEND_LOCAL_VLLM else None,
+            base_url=args.base_url if args.llm_backend in (BACKEND_LOCAL_VLLM, BACKEND_OPENROUTER) else None,
             reasoning_effort=args.reasoning_effort,
             temperature=temperature_kw,
             top_p=args.top_p,
@@ -1625,28 +1625,20 @@ def main() -> int:
     judge_model = model
     judge_reasoning_effort = args.reasoning_effort
     judge_temperature = temperature_kw
-    judge_base_url = args.base_url if args.llm_backend == BACKEND_LOCAL_VLLM else None
+    judge_base_url = args.base_url if args.llm_backend in (BACKEND_LOCAL_VLLM, BACKEND_OPENROUTER) else None
     if args.judge_llm_backend:
         judge_backend_name = args.judge_llm_backend
-        judge_model = args.judge_model or (
-            "Qwen/Qwen3.5-9B"
-            if args.judge_llm_backend == BACKEND_LOCAL_VLLM
-            else "gpt-5.5"
-        )
+        judge_model = args.judge_model or defaults[args.judge_llm_backend]
         judge_reasoning_effort = args.judge_reasoning_effort
         judge_temperature = None
         judge_base_url = (
             args.judge_base_url
-            if args.judge_llm_backend == BACKEND_LOCAL_VLLM
+            if args.judge_llm_backend in (BACKEND_LOCAL_VLLM, BACKEND_OPENROUTER)
             else None
         )
-        if args.judge_llm_backend == BACKEND_LOCAL_VLLM and not args.judge_base_url:
-            raise SystemExit("--judge-llm-backend local-vllm requires --judge-base-url")
-        judge_api_key_env = (
-            "VLLM_API_KEY"
-            if args.judge_llm_backend == BACKEND_LOCAL_VLLM
-            else "OPENAI_API_KEY"
-        )
+        if args.judge_llm_backend in (BACKEND_LOCAL_VLLM, BACKEND_OPENROUTER) and not args.judge_base_url:
+            raise SystemExit("Chat judge backends require --judge-base-url")
+        judge_api_key_env = key_names[args.judge_llm_backend]
         judge_api_key = os.getenv(judge_api_key_env)
         if args.judge_llm_backend == BACKEND_LOCAL_VLLM:
             judge_api_key = judge_api_key or "EMPTY"
@@ -1663,6 +1655,7 @@ def main() -> int:
                 base_url=judge_base_url,
                 reasoning_effort=judge_reasoning_effort,
                 temperature=None,
+                max_output_tokens=args.max_output_tokens if args.judge_llm_backend == BACKEND_OPENROUTER else None,
                 timeout_seconds=args.timeout_seconds,
                 background=args.openai_background,
             )
@@ -2148,6 +2141,14 @@ def main() -> int:
                 label_a=f"multi-agent-design-v{champ}",
                 label_b=f"multi-agent-design-v{args.current_version}",
             )
+            _enforce_context_budget(
+                stage="champion arbitration",
+                system_prompt=arb_system,
+                user_prompt=arb_user,
+                max_output_tokens=args.max_output_tokens,
+                context_window_tokens=args.context_window_tokens,
+                context_safety_tokens=args.context_safety_tokens,
+            )
             arb_dir = comparisons_dir / arb_key
             _write_full_prompt_dump(
                 arb_dir / "full_prompt.txt",
@@ -2468,7 +2469,7 @@ def main() -> int:
         "llm_backend": args.llm_backend,
         "model": model,
         "base_url": (
-            args.base_url if args.llm_backend == BACKEND_LOCAL_VLLM else None
+            args.base_url if args.llm_backend in (BACKEND_LOCAL_VLLM, BACKEND_OPENROUTER) else None
         ),
         "reasoning_effort": args.reasoning_effort,
         "temperature": temperature_kw,
@@ -2511,7 +2512,7 @@ def main() -> int:
         "llm_backend": args.llm_backend,
         "model": model,
         "base_url": (
-            args.base_url if args.llm_backend == BACKEND_LOCAL_VLLM else None
+            args.base_url if args.llm_backend in (BACKEND_LOCAL_VLLM, BACKEND_OPENROUTER) else None
         ),
         "estimated_cost_usd_this_run": (round(sum(run_cost_estimates), 8) if run_cost_estimates else None),
         "api_calls_count_this_run": run_api_calls_total,

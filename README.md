@@ -182,6 +182,9 @@ Use `rollout` and `report` for [synthetic-task evaluation](docs/running.md#synth
 The [public benchmark guide](benchmarks/README.md) describes ScienceAgentBench
 and MLR-Bench evaluation with $\mathcal{L}^{(k)}$ + qwen-code.
 
+For remote inference with GPT-OSS 120B Nitro, see the
+[OpenRouter guide](docs/openrouter.md). Local vLLM and LM Studio remain supported.
+
 <a name="repository-layout"></a>
 
 ## 🗂️ Repository layout

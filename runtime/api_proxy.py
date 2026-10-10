@@ -3,8 +3,9 @@
 
     api_proxy.py --listen 9001 --upstream http://127.0.0.1:8001 --log api_requests.jsonl
 
-Every request is forwarded unchanged (method, path+query, headers minus
-hop-by-hop, body) and the upstream response is relayed unchanged (streaming
+Every request is forwarded unchanged except for hop-by-hop headers and
+Accept-Encoding, which is set to identity so logged bodies can be parsed.
+The upstream response is relayed unchanged (streaming
 SSE is relayed chunk-by-chunk as it arrives). One JSON line per request is
 appended to --log with the parsed request body and the response, where a
 streamed chat completion is reassembled into a single message (content,
@@ -13,7 +14,7 @@ reasoning_content, tool_calls, finish_reason, usage).
 Purpose: capture EXACTLY what qwen-code sends to the model (system prompt,
 tool schemas, message history incl. reasoning replay, compression) so
 training samples can be rendered from the very same messages the served
-student will see. Nothing is modified in either direction.
+student will see. Request and response body contents are not modified.
 """
 import argparse
 import asyncio
@@ -36,6 +37,7 @@ def assemble_sse(raw: bytes) -> dict:
     choices = {}
     meta = {"id": None, "model": None, "created": None}
     usage = None
+    error = None
     n_chunks = 0
     n_bad = 0
     for line in raw.decode("utf-8", "replace").split("\n"):
@@ -51,6 +53,8 @@ def assemble_sse(raw: bytes) -> dict:
             n_bad += 1
             continue
         n_chunks += 1
+        if obj.get("error"):
+            error = obj["error"]
         for k in meta:
             if meta[k] is None and obj.get(k) is not None:
                 meta[k] = obj[k]
@@ -60,6 +64,7 @@ def assemble_sse(raw: bytes) -> dict:
             idx = ch.get("index", 0)
             st = choices.setdefault(idx, {
                 "index": idx, "role": None, "content": [], "reasoning_content": [],
+                "reasoning_details": [],
                 "tool_calls": {}, "finish_reason": None, "stop_reason": None,
             })
             delta = ch.get("delta") or {}
@@ -72,6 +77,7 @@ def assemble_sse(raw: bytes) -> dict:
                 rc = delta.get("reasoning")
             if rc:
                 st["reasoning_content"].append(rc)
+            st["reasoning_details"].extend(delta.get("reasoning_details") or [])
             for tc in delta.get("tool_calls") or []:
                 ti = tc.get("index", 0)
                 t = st["tool_calls"].setdefault(ti, {"index": ti, "id": None, "type": None,
@@ -103,12 +109,13 @@ def assemble_sse(raw: bytes) -> dict:
             "role": st["role"] or "assistant",
             "content": "".join(st["content"]) if st["content"] else None,
             "reasoning_content": "".join(st["reasoning_content"]) if st["reasoning_content"] else None,
+            "reasoning_details": st["reasoning_details"] or None,
             "tool_calls": tool_calls or None,
         }
         out_choices.append({"index": idx, "message": msg, "finish_reason": st["finish_reason"],
                             "stop_reason": st["stop_reason"]})
     return {**meta, "object": "chat.completion.reassembled", "choices": out_choices,
-            "usage": usage, "n_chunks": n_chunks, "n_bad_chunks": n_bad}
+            "usage": usage, "error": error, "n_chunks": n_chunks, "n_bad_chunks": n_bad}
 
 
 def write_log(app, rec):
@@ -121,7 +128,9 @@ async def handle(request: web.Request):
     app = request.app
     body = await request.read()
     url = app["upstream"] + request.rel_url.path_qs
-    headers = {k: v for k, v in request.headers.items() if k.lower() not in HOP_BY_HOP}
+    headers = {k: v for k, v in request.headers.items()
+               if k.lower() not in HOP_BY_HOP and k.lower() != "accept-encoding"}
+    headers["Accept-Encoding"] = "identity"
     t0 = time.time()
     rec = {
         "ts_start": t0, "ts_start_iso": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t0)),
@@ -158,7 +167,7 @@ async def handle(request: web.Request):
                             await out.write(chunk)
                         except (ConnectionResetError, asyncio.CancelledError, Exception) as e:  # noqa: BLE001
                             client_gone = True
-                            rec["client_disconnected"] = repr(e)
+                            rec["client_disconnected"] = type(e).__name__
                 raw = b"".join(chunks)
                 rec["stream"] = True
                 rec["response_bytes"] = len(raw)
@@ -183,10 +192,11 @@ async def handle(request: web.Request):
     except web.HTTPException:
         raise
     except Exception as e:  # noqa: BLE001
-        rec["proxy_error"] = repr(e)
+        # HTTP exception representations can contain authenticated request headers.
+        rec["proxy_error"] = type(e).__name__
         rec["duration_s"] = round(time.time() - t0, 3)
         write_log(app, rec)
-        return web.Response(status=502, text=f"proxy error: {e!r}")
+        return web.Response(status=502, text=f"proxy error: {type(e).__name__}")
 
 
 async def on_startup(app):

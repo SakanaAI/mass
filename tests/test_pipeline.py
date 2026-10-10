@@ -2,9 +2,12 @@
 import ast
 import collections
 import copy
+import importlib.util
 import json
 from pathlib import Path
 import tempfile
+import sys
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -35,6 +38,109 @@ class PipelineTests(unittest.TestCase):
         self.c["model_id"] = "another-model"
         with self.assertRaises(ValueError):
             p.freeze_config(self.c)
+
+    def remote_config(self):
+        c = copy.deepcopy(self.c)
+        c.update(endpoint="https://openrouter.ai/api/v1", model_id="openai/gpt-oss-120b:nitro")
+        c["inference"] = dict(backend="openrouter", context_window_tokens=131072,
+                              episode_max_output_tokens=8192, max_output_tokens=8192,
+                              context_safety_tokens=8192, reasoning_effort="medium")
+        return c
+
+    def test_remote_validation_and_budget_boundaries(self):
+        c = self.remote_config()
+        c["endpoint"] += "/"
+        self.assertEqual(p.validate(c)["endpoint"], "https://openrouter.ai/api/v1")
+        for endpoint in ("http://openrouter.ai/api/v1", "https://other/api/v1",
+                         "https://key@" "openrouter.ai/api/v1", "https://openrouter.ai/api/v1?key=x"):
+            bad = self.remote_config()
+            bad["endpoint"] = endpoint
+            with self.assertRaises(ValueError):
+                p.validate(bad)
+        for name, value in (("max_output_tokens", True), ("context_safety_tokens", 0),
+                            ("max_output_tokens", 122880), ("episode_max_output_tokens", -1),
+                            ("context_window_tokens", "131072"), ("backend", "typo")):
+            bad = self.remote_config()
+            bad["inference"][name] = value
+            with self.subTest(name=name, value=value), self.assertRaises(ValueError):
+                p.validate(bad)
+
+    def test_remote_episode_and_optimizer_receive_same_settings(self):
+        c = self.remote_config()
+        c["search"]["iterations"] = 1
+        with patch.object(p, "run") as run:
+            p.search(c, [51])
+        episodes = [call for call in run.call_args_list if call.args[0][0] == "bash"]
+        self.assertEqual(len(episodes), 3)
+        for call in episodes:
+            env = call.args[1]
+            self.assertEqual(env["MASS_BACKEND"], "openrouter")
+            self.assertEqual(env["MODEL_BASE_URL"], "https://openrouter.ai/api/v1")
+            self.assertEqual(env["MODEL_MAX_OUTPUT_TOKENS"], "8192")
+        for call in run.call_args_list:
+            cmd = list(map(str, call.args[0]))
+            if cmd[0] == "bash":
+                continue
+            self.assertEqual(cmd[cmd.index("--llm-backend") + 1], "openrouter")
+            self.assertEqual(cmd[cmd.index("--api-key-env") + 1], "OPENROUTER_API_KEY")
+            self.assertEqual(cmd[cmd.index("--context-window-tokens") + 1], "131072")
+            self.assertNotIn("--require-local-vllm", cmd)
+            self.assertNotIn("--local-thinking", cmd)
+            self.assertNotIn("--top-k", cmd)
+            self.assertIn("--report-max-tokens", cmd)
+
+    def test_remote_training_stages_fail_before_creating_run(self):
+        c = self.remote_config()
+        c["run_dir"] = str(self.base / "must-not-exist")
+        path = self.base / "remote.json"
+        write_json(path, c)
+        for stage in ("render", "train", "export"):
+            with patch.object(sys, "argv", ["mass", stage, "--config", str(path)]):
+                with self.assertRaisesRegex(SystemExit, "inference"):
+                    p.main()
+            self.assertFalse(Path(c["run_dir"]).exists())
+
+    def test_remote_rank_budget_stops_before_model_call(self):
+        if not importlib.util.find_spec("openai"):
+            self.skipTest("requires requirements-core.txt")
+        from mass.judging import self_judge
+        # Import before patching its imported prompt builder to avoid leaking the fixture.
+        from harness_improvement import iterate_multi_agent_prompt
+        c = self.remote_config()
+        with patch("mass.judging.bundles", return_value=[None, None]), \
+             patch("evaluation_claudecodex.pairwise_judge.build_pairwise_user_message", return_value="X" * 600000), \
+             patch("harness_improvement.llm_backend.JsonLLMBackend") as backend:
+            with self.assertRaisesRegex(SystemExit, "context guard"):
+                self_judge(c, 51, self.base, self.base, 42)
+            backend.assert_not_called()
+
+    def test_remote_rank_uses_selected_model_and_bounded_evidence(self):
+        if not importlib.util.find_spec("openai"):
+            self.skipTest("requires requirements-core.txt")
+        from mass.judging import self_judge
+        c = self.remote_config()
+        with patch("evaluation.bundle.build_judge_bundle", return_value={}) as bundle, \
+             patch("evaluation_claudecodex.pairwise_judge.build_pairwise_user_message", return_value="compare"), \
+             patch("harness_improvement.llm_backend.JsonLLMBackend") as backend, \
+             patch.dict("os.environ", OPENROUTER_API_KEY="fixture-secret"):
+            backend.return_value.call_json.return_value = SimpleNamespace(
+                payload={"winner": "A", "rationale": "fixture"}, metrics={"estimated_cost_usd": None})
+            verdict = self_judge(c, 51, self.base, self.base, 42)
+        self.assertEqual(verdict["model"], c["model_id"])
+        self.assertIsNone(verdict["metrics"]["estimated_cost_usd"])
+        settings = backend.call_args.kwargs
+        self.assertEqual(settings["backend"], "openrouter")
+        self.assertEqual(settings["base_url"], c["endpoint"])
+        self.assertEqual(settings["model"], c["model_id"])
+        self.assertEqual(settings["api_key"], "fixture-secret")
+        self.assertEqual(settings["max_output_tokens"], 8192)
+        self.assertEqual(settings["reasoning_effort"], "medium")
+        self.assertIsNone(settings["top_k"])
+        self.assertEqual(bundle.call_count, 2)
+        for call in bundle.call_args_list:
+            self.assertEqual(call.kwargs["report_max_tokens"], 12000)
+            self.assertEqual(call.kwargs["json_max_tokens"], 6000)
+            self.assertEqual(call.kwargs["code_max_tokens"], 4000)
 
     def test_tournament_balanced_connected_and_unique(self):
         names = [f"e{i}" for i in range(18)]
@@ -88,7 +194,12 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(p.best_checkpoint(out)["step"], 300)
 
     def test_synthetic_search_collection_rank_select_integration(self):
-        c = copy.deepcopy(self.c)
+        self.synthetic_cycle(copy.deepcopy(self.c))
+
+    def test_remote_search_collection_rank_select_integration(self):
+        self.synthetic_cycle(self.remote_config())
+
+    def synthetic_cycle(self, c):
         c["tasks"] = {"train": [51], "train_candidates": [51], "excluded": [], "test": []}
         c["search"]["iterations"] = 2
         commands = []

@@ -9,12 +9,13 @@ same explicitly selected backend.
 from __future__ import annotations
 
 import json
+import math
 import re
 import time
 from dataclasses import dataclass
 from typing import Any
 
-from openai import OpenAI
+from openai import BadRequestError, DefaultHttpxClient, OpenAI
 
 from evaluation.openai_responses import responses_create_adaptive
 from evaluation.responses_metrics import ResponsesCallMetrics
@@ -22,7 +23,8 @@ from evaluation.responses_metrics import ResponsesCallMetrics
 
 BACKEND_OPENAI_RESPONSES = "openai-responses"
 BACKEND_LOCAL_VLLM = "local-vllm"
-BACKEND_CHOICES = (BACKEND_OPENAI_RESPONSES, BACKEND_LOCAL_VLLM)
+BACKEND_OPENROUTER = "openrouter"
+BACKEND_CHOICES = (BACKEND_OPENAI_RESPONSES, BACKEND_LOCAL_VLLM, BACKEND_OPENROUTER)
 
 
 def _await_background_response(
@@ -127,7 +129,7 @@ def _responses_text(response: Any) -> str:
     return ""
 
 
-def _chat_usage_metrics(response: Any, *, model: str) -> dict[str, Any]:
+def _chat_usage_metrics(response: Any, *, model: str, backend: str = BACKEND_LOCAL_VLLM) -> dict[str, Any]:
     usage_obj = getattr(response, "usage", None)
     usage_raw: dict[str, Any] = {}
     if usage_obj is not None and hasattr(usage_obj, "model_dump"):
@@ -150,12 +152,20 @@ def _chat_usage_metrics(response: Any, *, model: str) -> dict[str, Any]:
         usage["input_tokens_details"] = prompt_details
     if isinstance(completion_details, dict):
         usage["output_tokens_details"] = completion_details
+    cost = usage_raw.get("cost")
+    if isinstance(cost, bool) or not isinstance(cost, (int, float)) or not math.isfinite(cost) or cost < 0:
+        cost = None
+    remote = backend == BACKEND_OPENROUTER
     return {
         "usage": usage,
-        "estimated_cost_usd": 0.0,
-        "cost_estimate_note": "Locally hosted vLLM inference; API cost recorded as $0.",
+        "raw_usage": usage_raw,
+        "estimated_cost_usd": cost if remote else 0.0,
+        "cost_estimate_note": ("OpenRouter-reported cost; unavailable when null." if remote else
+                               "Locally hosted inference; API cost recorded as $0."),
         "response_id": str(getattr(response, "id", "") or "") or None,
-        "served_model": model,
+        "requested_model": model,
+        "served_model": getattr(response, "model", None) or model,
+        "provider": getattr(response, "provider", None),
     }
 
 
@@ -183,6 +193,11 @@ class JsonLLMBackend:
             raise ValueError(f"Unsupported backend: {backend}")
         if backend == BACKEND_LOCAL_VLLM and not base_url:
             raise ValueError("local-vllm requires base_url")
+        if backend == BACKEND_OPENROUTER:
+            if not api_key.strip():
+                raise ValueError("OPENROUTER_API_KEY is required")
+            if (base_url or "").rstrip("/") != "https://openrouter.ai/api/v1":
+                raise ValueError("OpenRouter requires https://openrouter.ai/api/v1")
         self.backend = backend
         self.model = model
         self.reasoning_effort = reasoning_effort
@@ -199,17 +214,20 @@ class JsonLLMBackend:
             base_url=base_url,
             timeout=timeout_seconds,
             max_retries=0,
+            **({"http_client": DefaultHttpxClient(follow_redirects=False)}
+               if backend == BACKEND_OPENROUTER else {}),
         )
 
     def verify_model(self) -> None:
         """Fail early when the selected model is not served by local vLLM."""
-        if self.backend != BACKEND_LOCAL_VLLM:
+        if self.backend == BACKEND_OPENAI_RESPONSES:
             return
         models = self.client.models.list()
         ids = {str(item.id) for item in models.data}
-        if self.model not in ids:
+        model_id = self.model.removesuffix(":nitro") if self.backend == BACKEND_OPENROUTER else self.model
+        if model_id not in ids:
             raise RuntimeError(
-                f"Local endpoint is reachable but does not serve {self.model!r}; "
+                f"Endpoint is reachable but does not serve {self.model!r}; "
                 f"available models: {sorted(ids)}"
             )
 
@@ -244,7 +262,7 @@ class JsonLLMBackend:
                 metrics=metrics,
             )
 
-        response = self._local_chat(
+        response = self._chat(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             json_mode=True,
@@ -252,6 +270,8 @@ class JsonLLMBackend:
         if not response.choices:
             raise RuntimeError("Local vLLM returned no completion choices.")
         message = response.choices[0].message
+        if getattr(message, "refusal", None) or getattr(response, "error", None):
+            raise RuntimeError("Model refused or failed the JSON request")
         raw_content = message.content
         raw = raw_content.strip() if isinstance(raw_content, str) else ""
         if not raw:
@@ -266,7 +286,7 @@ class JsonLLMBackend:
         return JsonCallResult(
             payload=_extract_json_object(raw),
             raw_text=raw,
-            metrics=_chat_usage_metrics(response, model=self.model),
+            metrics=_chat_usage_metrics(response, model=self.model, backend=self.backend),
         )
 
     def call_text(self, *, system_prompt: str, user_prompt: str) -> JsonCallResult:
@@ -298,7 +318,7 @@ class JsonLLMBackend:
             ).to_json_dict()
             return JsonCallResult(payload={}, raw_text=raw, metrics=metrics)
 
-        response = self._local_chat(
+        response = self._chat(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             json_mode=False,
@@ -306,6 +326,8 @@ class JsonLLMBackend:
         if not response.choices:
             raise RuntimeError("Local vLLM returned no completion choices.")
         message = response.choices[0].message
+        if getattr(message, "refusal", None) or getattr(response, "error", None):
+            raise RuntimeError("Model refused or failed the text request")
         raw_content = message.content
         raw = raw_content.strip() if isinstance(raw_content, str) else ""
         if not raw:
@@ -319,10 +341,10 @@ class JsonLLMBackend:
         return JsonCallResult(
             payload={},
             raw_text=raw,
-            metrics=_chat_usage_metrics(response, model=self.model),
+            metrics=_chat_usage_metrics(response, model=self.model, backend=self.backend),
         )
 
-    def _local_chat(
+    def _chat(
         self,
         *,
         system_prompt: str,
@@ -340,6 +362,8 @@ class JsonLLMBackend:
                 **({"top_k": self.top_k} if self.top_k is not None else {}),
             },
         }
+        if self.backend == BACKEND_OPENROUTER:
+            kwargs["extra_body"] = {"reasoning": {"effort": self.reasoning_effort or "medium"}}
         if json_mode:
             kwargs["response_format"] = {"type": "json_object"}
         if self.temperature is not None:
@@ -351,4 +375,11 @@ class JsonLLMBackend:
         if self.seed is not None:
             kwargs["seed"] = self.seed
 
-        return self.client.chat.completions.create(**kwargs)
+        try:
+            return self.client.chat.completions.create(**kwargs)
+        except BadRequestError as exc:
+            if self.backend != BACKEND_LOCAL_VLLM or not json_mode or "'response_format.type' must be 'json_schema' or 'text'" not in str(exc):
+                raise
+            # LM Studio rejects json_object; retain prompt-based JSON and caller validation.
+            kwargs.pop("response_format")
+            return self.client.chat.completions.create(**kwargs)

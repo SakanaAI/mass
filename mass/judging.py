@@ -3,15 +3,15 @@ import os
 import random
 
 
-def bundles(task, workspace_a, workspace_b):
+def bundles(task, workspace_a, workspace_b, *, remote=False):
     from evaluation.bundle import build_judge_bundle
     from .io import ROOT
     task_text = (ROOT / f"tasks/bare/query{task}.txt").read_text()
     task_text = task_text.split("Use uv for all Python workflows")[0].replace("\\n", "\n").strip()
     row = {"query_id": f"query_{task}", "query": task_text}
     return [build_judge_bundle(memory_root=p, task_row=row, log_path=None,
-                              report_max_tokens=None, json_max_tokens=50000,
-                              code_max_tokens=10000, token_count_model="gpt-5.5")
+                              report_max_tokens=12000 if remote else None, json_max_tokens=6000 if remote else 50000,
+                              code_max_tokens=4000 if remote else 10000, token_count_model="gpt-5.5")
             for p in (workspace_a, workspace_b)]
 
 
@@ -20,14 +20,26 @@ def self_judge(config, task, workspace_a, workspace_b, seed):
     from evaluation_claudecodex.pairwise_judge import build_pairwise_user_message
     from evaluation_claudecodex.pairwise_prompts import pairwise_judge_system_for_query_num
     from evaluation_claudecodex.pairwise_schema import PairwiseJudgeResult
-    a, b = bundles(task, workspace_a, workspace_b)
-    backend = JsonLLMBackend(backend="local-vllm", model=config["model_id"],
-                            base_url=config["endpoint"], api_key=os.environ.get("VLLM_API_KEY", "EMPTY"),
-                            temperature=0.6, top_p=0.95, top_k=20,
-                            max_output_tokens=49152, enable_thinking=True, seed=seed)
+    from .pipeline import inference_options
+    inference = inference_options(config)
+    remote = inference["backend"] == "openrouter"
+    a, b = bundles(task, workspace_a, workspace_b, remote=remote)
+    system = pairwise_judge_system_for_query_num(task)
+    user = build_pairwise_user_message(a, b, label_a="candidate-a", label_b="candidate-b")
+    if remote:
+        from harness_improvement.iterate_multi_agent_prompt import _enforce_context_budget
+        _enforce_context_budget(stage="ranking", system_prompt=system, user_prompt=user,
+                                max_output_tokens=inference["max_output_tokens"],
+                                context_window_tokens=inference["context_window_tokens"],
+                                context_safety_tokens=inference["context_safety_tokens"])
+    backend = JsonLLMBackend(backend=inference["backend"], model=config["model_id"],
+                            base_url=config["endpoint"],
+                            api_key=os.environ.get("OPENROUTER_API_KEY", "") if remote else os.environ.get("VLLM_API_KEY", "EMPTY"),
+                            reasoning_effort=inference["reasoning_effort"] if remote else None,
+                            temperature=None if remote else 0.6, top_p=None if remote else 0.95, top_k=None if remote else 20,
+                            max_output_tokens=inference["max_output_tokens"], enable_thinking=True, seed=seed)
     backend.verify_model()
-    result = backend.call_json(system_prompt=pairwise_judge_system_for_query_num(task),
-                               user_prompt=build_pairwise_user_message(a, b, label_a="candidate-a", label_b="candidate-b"))
+    result = backend.call_json(system_prompt=system, user_prompt=user)
     verdict = PairwiseJudgeResult.model_validate(result.payload)
     return {"winner": verdict.winner, "rationale": verdict.rationale,
             "model": config["model_id"], "seed": seed, "metrics": result.metrics}

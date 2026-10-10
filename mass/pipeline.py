@@ -15,6 +15,12 @@ from .io import ROOT, append_record, package_path, read_json, records, write_jso
 from .ranking import bradley_terry
 
 
+def inference_options(c):
+    return dict(backend="local-vllm", context_window_tokens=262144,
+                episode_max_output_tokens=32768, max_output_tokens=49152,
+                context_safety_tokens=8192, reasoning_effort="medium") | c.get("inference", {})
+
+
 def validate(c):
     tasks = c["tasks"]
     train, test, excluded = map(set, (tasks["train"], tasks["test"], tasks["excluded"]))
@@ -24,11 +30,26 @@ def validate(c):
         raise ValueError("Training candidates must equal train + excluded tasks")
     if len(train) != len(tasks["train"]) or len(test) != len(tasks["test"]):
         raise ValueError("Duplicate task IDs")
-    p = urlparse(c["endpoint"])
-    if p.scheme != "http" or p.hostname not in ("127.0.0.1", "localhost") or p.path != "/v1" or not p.port:
-        raise ValueError("Episode runner requires http://127.0.0.1:PORT/v1")
-    if p.username or p.password or p.query or p.fragment or p.port == c["proxy_port"]:
-        raise ValueError("Endpoint must have no credentials/query and must differ from the proxy port")
+    inference = inference_options(c)
+    if inference["backend"] not in ("local-vllm", "openrouter"):
+        raise ValueError("Inference backend must be local-vllm or openrouter")
+    for name in ("context_window_tokens", "episode_max_output_tokens", "max_output_tokens", "context_safety_tokens"):
+        if type(inference[name]) is not int or inference[name] <= 0:
+            raise ValueError(f"{name} must be a positive integer")
+    if max(inference["episode_max_output_tokens"], inference["max_output_tokens"]) + inference["context_safety_tokens"] >= inference["context_window_tokens"]:
+        raise ValueError("Output and safety token budgets must fit within context")
+    if inference["backend"] == "openrouter":
+        if c["endpoint"].rstrip("/") != "https://openrouter.ai/api/v1":
+            raise ValueError("OpenRouter requires https://openrouter.ai/api/v1")
+        c["endpoint"] = c["endpoint"].rstrip("/")
+        if inference["reasoning_effort"] not in ("low", "medium", "high"):
+            raise ValueError("OpenRouter reasoning_effort must be low, medium, or high")
+    else:
+        p = urlparse(c["endpoint"])
+        if p.scheme != "http" or p.hostname not in ("127.0.0.1", "localhost") or p.path != "/v1" or not p.port:
+            raise ValueError("Episode runner requires http://127.0.0.1:PORT/v1")
+        if p.username or p.password or p.query or p.fragment or p.port == c["proxy_port"]:
+            raise ValueError("Endpoint must have no credentials/query and must differ from the proxy port")
     if c["search"]["iterations"] < 1:
         raise ValueError("At least one RHI update is required")
     if c["collection"]["validation_rank"] != c["collection"]["train_ranks"] + 1:
@@ -77,10 +98,15 @@ def episode(c, prompt, workspace, logs, seed, condition):
         return
     # The shell runner refuses to overwrite partial/failed episodes. Keep the
     # evidence and use a new run directory after correcting an infrastructure failure.
+    inference = inference_options(c)
     env = dict(os.environ, MODEL_ID=c["model_id"], PROXY_PORT=str(c["proxy_port"]),
-               PROXY_PY=sys.executable, HIW_CONDITION=condition)
+               PROXY_PY=sys.executable, HIW_CONDITION=condition,
+               MASS_BACKEND=inference["backend"], MODEL_BASE_URL=c["endpoint"],
+               MODEL_CONTEXT_WINDOW=str(inference["context_window_tokens"]),
+               MODEL_MAX_OUTPUT_TOKENS=str(inference["episode_max_output_tokens"]),
+               MODEL_REASONING_EFFORT=inference["reasoning_effort"])
     run(["bash", ROOT / "runtime/run_episode.sh", prompt, workspace, logs,
-         str(urlparse(c["endpoint"]).port), str(seed)], env)
+         str(urlparse(c["endpoint"]).port or 443), str(seed)], env)
 
 
 def query_name(q):
@@ -95,6 +121,7 @@ def workflow_prompt(c, q, version):
 
 def search(c, tasks):
     base = run_root(c)
+    inference = inference_options(c)
     last = c["search"]["iterations"]
     for q in tasks:
         episode(c, ROOT / f"tasks/bare/query{q}.txt", base / f"reference/query{q}",
@@ -116,13 +143,19 @@ def search(c, tasks):
                    "--include-best-design", "--history-design-diffs", "--include-v0-design",
                    "--champion-repo-root-pattern", str(base / "workspaces/v{version}"),
                    "--champion-repo-v0-root", base / "workspaces/v0",
-                   "--llm-backend", "local-vllm", "--require-local-vllm",
+                   "--llm-backend", inference["backend"],
                    "--model", c["model_id"], "--base-url", c["endpoint"],
-                   "--temperature", "0.6", "--top-p", "0.95", "--top-k", "20",
-                   "--max-output-tokens", "49152", "--local-thinking",
+                   "--max-output-tokens", inference["max_output_tokens"],
                    "--seed", c["search"]["seed_base"] + q,
-                   "--context-window-tokens", "262144", "--context-safety-tokens", "8192",
+                   "--context-window-tokens", inference["context_window_tokens"],
+                   "--context-safety-tokens", inference["context_safety_tokens"],
                    "--results-json-max-chars", "24000", "--results-json-total-max-chars", "120000"]
+            if inference["backend"] == "openrouter":
+                cmd += ["--api-key-env", "OPENROUTER_API_KEY", "--reasoning-effort", inference["reasoning_effort"],
+                        "--omit-temperature", "--report-max-tokens", "12000", "--json-max-tokens", "6000",
+                        "--code-max-tokens", "4000"]
+            else:
+                cmd += ["--require-local-vllm", "--temperature", "0.6", "--top-p", "0.95", "--top-k", "20", "--local-thinking"]
             if k > 0:
                 cmd += ["--previous-repo", base / f"workspaces/v{k-1}/{query_name(q)}",
                         "--judge-vs-baseline", "--baseline-repo-root", base / "reference"]
@@ -335,9 +368,18 @@ def main():
     c = validate(read_json(args.config))
     if args.stage == "plan":
         print(json.dumps(c, indent=2))
-        print(f"L^({c['generation']}) -> RHI -> teacher collection -> SFT -> L^({c['generation'] + 1})")
-        print("Training command (not executed): " + shlex.join(list(map(str, training_command(c)))))
+        if inference_options(c)["backend"] == "openrouter":
+            print("OpenRouter -> RHI -> teacher collection -> ranking -> selection")
+            print("OpenRouter inference only: render, train, and export are not supported by this configuration.")
+        else:
+            print(f"L^({c['generation']}) -> RHI -> teacher collection -> SFT -> L^({c['generation'] + 1})")
+            print("Training command (not executed): " + shlex.join(list(map(str, training_command(c)))))
         return
+    if inference_options(c)["backend"] == "openrouter":
+        if args.stage in ("render", "train", "export"):
+            raise SystemExit("OpenRouter inference configuration does not support render, train, or export")
+        if args.stage in ("rollout", "search", "collect", "rank") and not os.environ.get("OPENROUTER_API_KEY", "").strip():
+            raise SystemExit("OPENROUTER_API_KEY is required for OpenRouter inference")
     freeze_config(c)
     tasks = args.tasks or (c["tasks"]["train"] if args.stage in ("collect", "rank") else
                           c["tasks"][args.split] if args.split != "all" else

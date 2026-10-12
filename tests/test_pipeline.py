@@ -130,8 +130,8 @@ class PipelineTests(unittest.TestCase):
         fn = next(n for n in ast.parse(source).body if isinstance(n, ast.FunctionDef) and n.name == "make_windows")
         scope = {"IGNORE": -100}
         exec(compile(ast.Module(body=[fn], type_ignores=[]), "renderer_function", "exec"), scope)
-        def block(kind, ids, loss):
-            return {"kind": kind, "ids": ids, "mask": [loss] * len(ids)}
+        def block(kind, ids, loss, is_query=False):
+            return {"kind": kind, "ids": ids, "mask": [loss] * len(ids), "is_query": is_query}
         blocks = [block("system", [1, 2], False), block("user", [3, 4], False),
                   block("assistant", [10, 11, 12], True), block("tool", [20, 21], False),
                   block("assistant", [30, 31, 32], True)]
@@ -140,6 +140,20 @@ class PipelineTests(unittest.TestCase):
         self.assertGreater(len(windows), 1)
         self.assertEqual([x for w in windows for x in w["labels"] if x != -100], [10, 11, 12, 30, 31, 32])
         self.assertTrue(all(len(w["input_ids"]) <= 10 for w in windows))
+
+        # A later answer must keep its own query, even when other context is dropped.
+        query = block("user", [40] * 5, False, is_query=True)
+        blocks = blocks[:2] + [block("assistant", [10], False), query,
+                              block("assistant", [50] * 7, True), block("tool", [20, 21], False),
+                              block("assistant", [60, 61], True)]
+        windows, skipped = scope["make_windows"](blocks, window=12, overlap=8)
+        self.assertEqual(skipped, [{"block": 4, "tokens": 7}])
+        self.assertEqual([x for w in windows for x in w["labels"] if x != -100], [60, 61])
+        self.assertEqual(windows[0]["input_ids"], [1, 2, 3, 4] + [40] * 5 + [60, 61])
+        windows, skipped = scope["make_windows"](blocks[:5], window=16, overlap=8)
+        self.assertFalse(skipped)
+        self.assertEqual(windows[0]["input_ids"], [1, 2, 3, 4] + [40] * 5 + [50] * 7)
+        self.assertEqual(windows[0]["labels"], [-100] * 9 + [50] * 7)
 
 
 if __name__ == "__main__":

@@ -310,11 +310,10 @@ def make_windows(blocks, window, overlap, max_header_frac=0.9):
             used = sum(len(body[c]["ids"]) for c in ctx)
         budget = window - header_len - used
         if len(body[i]["ids"]) > budget:
-            if len(body[i]["ids"]) <= window - header_len:
-                ctx = [q_block] if (q_block is not None and q_block < i and len(body[q_block]["ids"]) + len(body[i]["ids"]) <= window - header_len) else []
-                used = sum(len(body[c]["ids"]) for c in ctx)
-                budget = window - header_len - used
-            else:
+            ctx = [q_block] if q_block is not None and q_block < i else []
+            used = sum(len(body[c]["ids"]) for c in ctx)
+            budget = window - header_len - used
+            if len(body[i]["ids"]) > budget:
                 skipped.append({"block": i + 2, "tokens": len(body[i]["ids"])})
                 i += 1
                 continue

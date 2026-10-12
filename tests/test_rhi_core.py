@@ -5,13 +5,33 @@ import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from mass.io import ROOT, read_json
 
 
 @unittest.skipUnless(importlib.util.find_spec("openai") and importlib.util.find_spec("pydantic"), "requires requirements-core.txt")
 class RHICoreTests(unittest.TestCase):
+    def test_openai_judge_forwards_output_token_limit(self):
+        from evaluation.bundle import JudgeBundle
+        from evaluation_claudecodex.pairwise_judge import run_pairwise_judge
+
+        bundle = JudgeBundle("query_51", "fixture task", "workspace", None, "", "", [], None)
+        client = Mock()
+        client.responses.create.return_value = SimpleNamespace(
+            output_text='{"winner":"A","rationale":"Fixture verdict."}', usage=None, id="fixture")
+        for limit in (32768, None):
+            with self.subTest(limit=limit):
+                result, _ = run_pairwise_judge(
+                    client=client, model="gpt-5.5", bundle_a=bundle, bundle_b=bundle,
+                    label_a="a", label_b="b", judge_max_tokens=limit)
+                request = client.responses.create.call_args.kwargs
+                if limit is None:
+                    self.assertNotIn("max_output_tokens", request)
+                else:
+                    self.assertEqual(request["max_output_tokens"], limit)
+                self.assertEqual(result.winner, "A")
+
     def test_final_comparison_retains_winner_without_another_proposal(self):
         from harness_improvement import iterate_multi_agent_prompt as rhi
         calls = []

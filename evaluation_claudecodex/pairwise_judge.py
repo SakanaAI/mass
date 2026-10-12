@@ -214,6 +214,8 @@ def run_pairwise_judge(
             kwargs["temperature"] = temperature
         if reasoning_effort is not None and reasoning_effort != "":
             kwargs["reasoning"] = {"effort": reasoning_effort}
+        if judge_max_tokens is not None:
+            kwargs["max_output_tokens"] = judge_max_tokens
         response = responses_create_adaptive(client, **kwargs)
         raw = _text_from_response(response)
         if not raw:

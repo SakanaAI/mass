@@ -16,6 +16,8 @@ BENCH = BENCH_ROOT / "sab" / "benchmark"
 
 
 def collect(job_dir: Path, out: Path) -> dict:
+    if any(out.glob("eval_*.jsonl")):
+        raise FileExistsError(f"Evaluation logs already exist in {out}; use a fresh output directory and run ID")
     index = json.loads(INDEX.read_text()); out.mkdir(parents=True, exist_ok=True)
     trials = {}
     for t in sorted(job_dir.iterdir()):

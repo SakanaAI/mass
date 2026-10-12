@@ -45,6 +45,29 @@ class BenchmarkTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             mod.summarize(reviews, {"a"})
 
+    def test_sab_recollection_refuses_existing_scores_before_changing_predictions(self):
+        mod = load("scripts/bench_sab_collect_preds")
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            index = root / "index.json"
+            index.write_text(json.dumps({"sab_1": {"pred_program_name": "pred_fixture.py"}}))
+            job = root / "job"
+            trial = job / "sab_1__fixture"
+            src = trial / "verifier/pred_programs/pred_fixture.py"
+            src.parent.mkdir(parents=True)
+            (trial / "config.json").write_text("{}")
+            src.write_text("print('original')")
+            out = root / "predictions"
+            with patch.object(mod, "INDEX", index):
+                mod.collect(job, out)
+                log = out / "eval_original_run.jsonl"
+                log.write_text('{"success_rate": 0}\n')
+                before = {p.name: p.read_bytes() for p in out.iterdir()}
+                src.write_text("print('corrected')")
+                with self.assertRaisesRegex(FileExistsError, "fresh output directory and run ID"):
+                    mod.collect(job, out)
+            self.assertEqual({p.name: p.read_bytes() for p in out.iterdir()}, before)
+
 
 if __name__ == "__main__":
     unittest.main()

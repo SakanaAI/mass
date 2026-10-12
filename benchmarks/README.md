@@ -96,6 +96,9 @@ python benchmarks/scripts/bench_sab_collect_preds.py \
   --eval --run_id L0_t1 --max_workers 4
 ```
 
+Collection refuses to overwrite predictions once the output directory contains
+an evaluator log. Use a fresh output directory and run ID for corrected predictions.
+
 The agent limit is 1,800 seconds, with two CPUs and 8 GB of RAM per task.
 The official evaluator runs the recovered program with its 900-second limit.
 Figure-based tests also require the upstream evaluator's OpenAI credentials.

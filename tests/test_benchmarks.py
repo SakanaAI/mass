@@ -2,6 +2,7 @@ import importlib.util
 import json
 from pathlib import Path
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -16,6 +17,35 @@ def load(name):
 
 
 class BenchmarkTests(unittest.TestCase):
+    def test_benchmark_early_exit_is_retryable_but_loop_errors_and_timeouts_are_not(self):
+        with patch.dict("sys.modules", {
+            "harbor.agents.installed.base": SimpleNamespace(ApiConnectionClosedError=RuntimeError),
+            "harbor.agents.installed.qwen_code": SimpleNamespace(QwenCode=object, QwenCodeOptions=object),
+            "harbor.environments.base": SimpleNamespace(BaseEnvironment=object),
+            "harbor.models.agent.context": SimpleNamespace(AgentContext=object),
+        }):
+            mod = load("scripts/bench_qwen_code_agent")
+        agent = mod.BenchQwenCode()
+        agent.options = SimpleNamespace(model_dir="fixture", condition="fixture")
+        agent.model_name = "L0"
+        agent._version = "0.20.0"
+        cases = [
+            ([], 1, False, "api_error_infra"),
+            ([], 0, False, "api_error_infra"),
+            ([{"type": "result", "subtype": "error_max_turns", "is_error": True}], 1, False, "error_max_turns"),
+            ([], 1, True, "agent_timeout"),
+            ([{"type": "result", "subtype": "success", "is_error": False}], 0, False, None),
+        ]
+        with tempfile.TemporaryDirectory() as d:
+            logs = Path(d)
+            for events, exit_code, timed_out, expected in cases:
+                with self.subTest(events=events, exit_code=exit_code, timed_out=timed_out):
+                    (logs / "qwen_stream.jsonl").write_text("\n".join(map(json.dumps, events)))
+                    (logs / "qwen_exit_code").write_text(str(exit_code))
+                    status = agent._finish(logs, "fixture", 1, 8001, 9100, "sab_1", timed_out, False)
+                    self.assertEqual((status["failure"] or {}).get("subtype"), expected)
+                    self.assertEqual(status["exit_code"], exit_code)
+
     def test_sab_evaluator_paths_survive_its_changed_working_directory(self):
         spec = importlib.util.spec_from_file_location("collector", ROOT / "benchmarks/scripts/bench_sab_collect_preds.py")
         mod = importlib.util.module_from_spec(spec)

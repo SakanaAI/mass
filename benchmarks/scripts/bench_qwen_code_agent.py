@@ -340,6 +340,9 @@ class BenchQwenCode(QwenCode):
             exit_code = int((logs / "qwen_exit_code").read_text().strip())
         except Exception:  # noqa: BLE001
             pass
+        if result is None and not timed_out:
+            failure = failure or {"subtype": "api_error_infra", "message": f"qwen exited with code {exit_code} without a result event",
+                                  "last_tool_calls_most_recent_first": []}
         self._usage = usage
         status = {
             "started_at": started_at, "finished_at": finished_at, "model": self.opts.model_dir, "model_label": self.model_name,

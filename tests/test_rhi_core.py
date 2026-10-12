@@ -12,6 +12,48 @@ from mass.io import ROOT, read_json
 
 @unittest.skipUnless(importlib.util.find_spec("openai") and importlib.util.find_spec("pydantic"), "requires requirements-core.txt")
 class RHICoreTests(unittest.TestCase):
+    def test_workspace_evidence_stays_within_submission(self):
+        from evaluation.artifacts import read_text_file
+        from evaluation.bundle import build_judge_bundle, bundle_workspace_evidence
+        from harness_improvement.iterate_multi_agent_prompt import _build_all_results_json_evidence
+
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            workspace = base / "submission"
+            workspace.mkdir()
+            outside = base / "private"
+            outside.mkdir()
+            for name in ("report.txt", "private_metric.json", "test_private.py"):
+                (outside / name).write_text("OUTSIDE_SENTINEL")
+            report = workspace / "research_report.md"
+            report.symlink_to(outside / "report.txt")
+            (workspace / "results").symlink_to(outside, target_is_directory=True)
+            (workspace / "tests").symlink_to(outside, target_is_directory=True)
+            bundle = build_judge_bundle(memory_root=workspace, task_row={"query": "Write a report"}, log_path=None)
+            evidence = bundle_workspace_evidence(bundle)
+            self.assertNotIn("OUTSIDE_SENTINEL", evidence)
+            self.assertNotIn("private_metric.json", evidence)
+            self.assertNotIn("test_private.py", evidence)
+            self.assertIsNone(read_text_file(workspace, "../private/report.txt", max_chars=None))
+            self.assertNotIn("OUTSIDE_SENTINEL", _build_all_results_json_evidence(workspace, "query51_ourTeam"))
+
+            report.unlink()
+            (workspace / "report.txt").write_text("INTERNAL_REPORT")
+            report.symlink_to("report.txt")
+            (workspace / "results").unlink()
+            (workspace / "data").mkdir()
+            (workspace / "data/metrics.json").write_text("INTERNAL_METRIC")
+            (workspace / "data/private_metric.json").symlink_to(outside / "private_metric.json")
+            (workspace / "results").symlink_to("data", target_is_directory=True)
+            bundle = build_judge_bundle(memory_root=workspace, task_row={"query": "Write a report"}, log_path=None)
+            evidence = bundle_workspace_evidence(bundle)
+            self.assertIn("INTERNAL_REPORT", evidence)
+            self.assertIn("INTERNAL_METRIC", evidence)
+            self.assertNotIn("OUTSIDE_SENTINEL", evidence)
+            results = _build_all_results_json_evidence(workspace, "query51_ourTeam")
+            self.assertIn("INTERNAL_METRIC", results)
+            self.assertNotIn("OUTSIDE_SENTINEL", results)
+
     def test_final_comparison_retains_winner_without_another_proposal(self):
         from harness_improvement import iterate_multi_agent_prompt as rhi
         calls = []

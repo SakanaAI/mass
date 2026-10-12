@@ -993,7 +993,8 @@ def _build_all_results_json_evidence(
     total_max_chars: int | None = None,
 ) -> str:
     results_dir = repo_root / "results"
-    if not results_dir.is_dir():
+    resolved_root = repo_root.resolve()
+    if not results_dir.is_dir() or not results_dir.resolve().is_relative_to(resolved_root):
         return "- `results/` directory is missing."
 
     excluded_for_query202 = {
@@ -1061,7 +1062,10 @@ def _build_all_results_json_evidence(
     for path in json_paths:
         rel = path.relative_to(repo_root)
         try:
-            body = path.read_text(encoding="utf-8", errors="replace")
+            resolved_path = path.resolve()
+            if not resolved_path.is_relative_to(resolved_root):
+                continue
+            body = resolved_path.read_text(encoding="utf-8", errors="replace")
         except OSError as exc:
             body = f"<read error: {exc}>"
         truncated = False

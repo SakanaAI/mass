@@ -188,6 +188,7 @@ def build_file_tree(
     provenance evidence.
     """
     lines: list[str] = []
+    resolved_root = root.resolve()
     remaining_entries = max(0, max_files)
     tree_truncated = False
 
@@ -204,6 +205,8 @@ def build_file_tree(
         if name in SKIP_DIR_NAMES:
             return
         try:
+            if not cur.resolve().is_relative_to(resolved_root):
+                return
             subs = sorted(
                 (
                     path
@@ -251,12 +254,12 @@ def read_text_file(
     max_tokens: int | None = None,
     token_count: Callable[[str], int] | None = None,
 ) -> FileRead | None:
-    path = memory_root / rel
-    if not path.is_file():
-        return None
     try:
+        path = (memory_root / rel).resolve()
+        if not path.is_relative_to(memory_root.resolve()) or not path.is_file():
+            return None
         text = path.read_text(encoding="utf-8", errors="replace")
-    except OSError:
+    except (OSError, RuntimeError):
         return None
     truncated = False
     if max_tokens is not None:
@@ -362,7 +365,7 @@ def bundle_supporting_reads(
 
     # One pytest / test file if present
     tests_dir = memory_root / "tests"
-    if tests_dir.is_dir():
+    if tests_dir.is_dir() and tests_dir.resolve().is_relative_to(memory_root.resolve()):
         for p in sorted(tests_dir.glob("test_*.py")):
             test_cap = None if code_max_chars is None else min(8000, code_max_chars)
             test_token_cap = None if code_max_tokens is None else min(8000, code_max_tokens)

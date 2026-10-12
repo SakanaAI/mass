@@ -2,11 +2,12 @@
 import ast
 import collections
 import copy
+from contextlib import nullcontext
 import json
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from mass import pipeline as p
 from mass.io import ROOT, read_json, write_json
@@ -20,6 +21,49 @@ class PipelineTests(unittest.TestCase):
         self.base = Path(self.tmp.name)
         self.c = read_json(ROOT / "configs/paper.json")
         self.c["run_dir"] = str(self.base)
+
+    def test_pp_ddp_synchronizes_trainable_parameters_on_primary_device(self):
+        source = (ROOT / "training/train_sft_lora.py").read_text()
+        main = next(n for n in ast.parse(source).body if isinstance(n, ast.FunctionDef) and n.name == "main")
+        start = next(i for i, n in enumerate(main.body) if isinstance(n, ast.Assign) and getattr(n.targets[0], "id", None) == "params")
+        end = next(i for i, n in enumerate(main.body) if isinstance(n, ast.Assign) and getattr(n.targets[0], "id", None) == "opt")
+        code = compile(ast.Module(body=main.body[start:end], type_ignores=[]), "replica_init", "exec")
+
+        class Tensor:
+            def __init__(self, value, device, requires_grad=True):
+                self.value, self.device, self.requires_grad = value, device, requires_grad
+
+            def detach(self):
+                return self
+
+            def to(self, device):
+                return Tensor(self.value, device)
+
+            def copy_(self, other):
+                self.value = other.value
+
+        initial = []
+        replicas = []
+        for rank in range(2):
+            params = [Tensor(rank + 1, "cuda:0"), Tensor(rank + 2, "cuda:1"), Tensor(9, "cuda:1", False)]
+            replicas.append(params)
+            received = iter(initial)
+
+            def broadcast(tensor, src):
+                self.assertEqual((tensor.device, src), ("cuda:0", 0))
+                if rank == 0:
+                    initial.append(tensor.value)
+                else:
+                    tensor.value = next(received)
+
+            torch = Mock()
+            torch.no_grad = nullcontext
+            torch.distributed.broadcast.side_effect = broadcast
+            exec(code, {"model": Mock(parameters=lambda: params), "args": Mock(parallel="pp_ddp"),
+                        "world": 2, "device": "cuda:0", "torch": torch})
+            self.assertEqual(torch.distributed.broadcast.call_count, 2)
+        self.assertEqual([p.value for p in replicas[0]], [p.value for p in replicas[1]])
+        self.assertEqual([p.device for p in replicas[1]], ["cuda:0", "cuda:1", "cuda:1"])
 
     def test_configs_keep_model_generations_and_splits_separate(self):
         for name in ("paper.json", "cycle2.json"):

@@ -94,7 +94,7 @@
   "tasks/teacher_directive.txt": "35c3d0ed83e37564dd41bda3b18a3c6d9b2213a881ecf210039830ae05d4b82b",
   "tests/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
   "tests/test_benchmarks.py": "4517d448f2e8abca27a2752ebd4dc866545a89341accc2cffcb36bb6bda771d5",
-  "tests/test_pipeline.py": "4f5697e1ed7bb3b5281bbedad78fc88542f77fcf0b85a96bf96011fc6df879e9",
+  "tests/test_pipeline.py": "3d7ff24898ba6e91f1b9ef7d0a16ffbbaebed0a23ad9c99d8b98690c61751396",
   "tests/test_rhi_core.py": "0e77e0a7f1b89f210d805ce4d917ab7ad4e233f85f98b187fcd07a7c07342515",
   "tools/check_source.py": "9acb6086a42b75f5ba96c1e6f26b216da1c7c1ccde5b8b7570dc21b023bef077",
   "tools/fetch_models.py": "06b2d78b9bf4ee0998da860786e9501967fa4d67d3a41be6e09fea08210b1330",
@@ -104,5 +104,5 @@
   "training/merge_lora.py": "be4b8fffb48669c6729bc559c976fcc4401df8ed7947f5e332ed470f8824df12",
   "training/prepare_sft_data.py": "4428b0186aaa93c2b8ed767021d0d1f68c1b88334ebe356c17ee3e4e4d30a87b",
   "training/quantize_fp8_blockwise.py": "658d42cd10eb9dba2d40f38554b5a7da560d4e58393636dc005917f75c826f6c",
-  "training/train_sft_lora.py": "91b5988440cfb3680f12a46762aa8bd0f9ad1a5de45cccb8c3c37d3385d8eb5a"
+  "training/train_sft_lora.py": "bdf1302e222f993c4fd34e41c4a4adfebac099b449911437a4a31f52f5015092"
 }

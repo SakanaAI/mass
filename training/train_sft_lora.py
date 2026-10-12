@@ -354,6 +354,12 @@ def main():
         lm_head_w = lm_head_w.to(device)
 
     params = [p for p in model.parameters() if p.requires_grad]
+    if args.parallel == "pp_ddp" and world > 1:
+        with torch.no_grad():
+            for p in params:
+                initial = p.detach().to(device)
+                torch.distributed.broadcast(initial, src=0)
+                p.copy_(initial.to(p.device))
     opt = torch.optim.AdamW(params, lr=args.lr, betas=(0.9, 0.95), weight_decay=args.weight_decay, eps=1e-8)
     per_step = args.grad_accum * world
     total_steps = args.steps or max(1, math.ceil(args.epochs * len(train_rows) / per_step))
